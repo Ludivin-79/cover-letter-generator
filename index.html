@@ -3,745 +3,716 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Générateur de Lettre de Motivation</title>
+<title>MotivAI — Générateur de Lettre</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-/* ═══════════════════════════════════════════
-   TOKENS — Design A (Minimaliste Noir/Blanc)
-   ═══════════════════════════════════════════ */
+/* ═══════════════ DESIGN TOKENS ═══════════════ */
 [data-design="A"] {
-  --accent:        #111111;
-  --accent-hover:  #333333;
-  --accent-text:   #ffffff;
-  --sidebar-bg:    #ffffff;
-  --sidebar-text:  #555555;
-  --tab-active-bg: #111111;
-  --tab-active-tx: #ffffff;
-  --header-bg:     #111111;
-  --header-text:   #ffffff;
-  --badge-bg:      #333333;
-  --badge-text:    #ffffff;
-  --input-border:  #dddddd;
-  --input-focus:   #111111;
+  --acc: #111; --acc-h: #333; --acc-tx: #fff;
+  --sidebar-bg: var(--surface); --sidebar-tx: var(--text-muted);
+  --tab-act-bg: #111; --tab-act-tx: #fff;
+  --hdr-bg: #111; --hdr-tx: #fff;
+  --badge-bg: #333; --badge-tx: #fff;
+  --inp-bdr: #ddd; --inp-focus: #111;
+  --obj-bdr: #111;
 }
-/* ═══════════════════════════════════════════
-   TOKENS — Design C (Pro Bleu Marine)
-   ═══════════════════════════════════════════ */
 [data-design="C"] {
-  --accent:        #0C447C;
-  --accent-hover:  #185FA5;
-  --accent-text:   #ffffff;
-  --sidebar-bg:    #042C53;
-  --sidebar-text:  #85B7EB;
-  --tab-active-bg: rgba(255,255,255,0.15);
-  --tab-active-tx: #ffffff;
-  --header-bg:     #0C447C;
-  --header-text:   #ffffff;
-  --badge-bg:      #1D9E75;
-  --badge-text:    #ffffff;
-  --input-border:  #B5D4F4;
-  --input-focus:   #0C447C;
+  --acc: #0C447C; --acc-h: #185FA5; --acc-tx: #fff;
+  --sidebar-bg: #042C53; --sidebar-tx: #85B7EB;
+  --tab-act-bg: rgba(255,255,255,.15); --tab-act-tx: #fff;
+  --hdr-bg: #0C447C; --hdr-tx: #fff;
+  --badge-bg: #1D9E75; --badge-tx: #fff;
+  --inp-bdr: #B5D4F4; --inp-focus: #0C447C;
+  --obj-bdr: #0C447C;
 }
-
-/* ═══════════════════════════════════════════
-   DARK MODE
-   ═══════════════════════════════════════════ */
 [data-theme="light"] {
-  --bg:            #f5f5f3;
-  --surface:       #ffffff;
-  --border:        #e5e5e0;
-  --text:          #1a1a18;
-  --text-muted:    #888888;
-  --text-hint:     #aaaaaa;
-  --input-bg:      #fafaf8;
-  --letter-bg:     #ffffff;
-  --letter-border: #e5e5e0;
+  --bg: #f0f0ee; --surface: #fff; --bdr: #e5e5e0;
+  --text: #1a1a18; --text-muted: #888; --text-hint: #bbb;
+  --inp-bg: #fafaf8; --ltr-bg: #fff; --ltr-bdr: #e5e5e0;
+  --shadow: 0 4px 24px rgba(0,0,0,.10);
+  --para-hover: rgba(0,0,0,.03); --para-edit: rgba(255,200,0,.08);
 }
 [data-theme="dark"] {
-  --bg:            #1a1a18;
-  --surface:       #242422;
-  --border:        #333330;
-  --text:          #f0ede8;
-  --text-muted:    #888880;
-  --text-hint:     #555550;
-  --input-bg:      #2a2a28;
-  --letter-bg:     #2a2a28;
-  --letter-border: #333330;
+  --bg: #181816; --surface: #222220; --bdr: #2e2e2c;
+  --text: #ede9e3; --text-muted: #888; --text-hint: #444;
+  --inp-bg: #2a2a28; --ltr-bg: #262624; --ltr-bdr: #2e2e2c;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+  --para-hover: rgba(255,255,255,.03); --para-edit: rgba(255,200,0,.06);
 }
-
-/* ═══════════════════════════════════════════
-   RESET & BASE
-   ═══════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  transition: background 0.2s, color 0.2s;
+/* ═══════════════ RESET ═══════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);transition:background .2s,color .2s}
+/* ═══════════════ HEADER ═══════════════ */
+header{background:var(--hdr-bg);height:52px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-l{display:flex;align-items:center;gap:10px}
+.hdr-logo{color:var(--hdr-tx);font-size:15px;font-weight:700;letter-spacing:-.3px}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;background:var(--badge-bg);color:var(--badge-tx)}
+.hdr-r{display:flex;align-items:center;gap:4px}
+.hbtn{padding:4px 9px;font-size:11px;font-family:inherit;cursor:pointer;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:var(--hdr-tx);transition:background .15s;white-space:nowrap}
+.hbtn:hover{background:rgba(255,255,255,.18)}
+.hbtn.on{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.45)}
+.hdiv{width:1px;height:16px;background:rgba(255,255,255,.15);margin:0 4px}
+/* ═══════════════ LAYOUT ═══════════════ */
+.layout{display:flex;height:calc(100vh - 52px);overflow:hidden}
+/* ═══════════════ LEFT PANEL ═══════════════ */
+.panel-l{width:295px;flex-shrink:0;background:var(--sidebar-bg);border-right:1px solid var(--bdr);display:flex;flex-direction:column;transition:width .25s,background .2s}
+.panel-l.collapsed{width:0;overflow:hidden;border:none}
+.tabs{display:flex;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.tab{flex:1;padding:10px 0;font-size:11px;font-weight:700;background:var(--sidebar-bg);color:var(--sidebar-tx);border:none;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,background .15s}
+[data-design="A"] .tab{background:var(--surface);color:var(--text-muted)}
+[data-design="A"] .tab.on{background:var(--tab-act-bg);color:var(--tab-act-tx);border-bottom-color:transparent}
+[data-design="C"] .tab.on{background:var(--tab-act-bg);color:var(--tab-act-tx)}
+.tab-pane{display:none;flex:1;overflow-y:auto;padding:14px;flex-direction:column;gap:11px}
+.tab-pane.on{display:flex}
+.sep{border:none;border-top:1px solid var(--bdr);margin:2px 0}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fl{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em}
+input,textarea,select{width:100%;font-family:inherit;font-size:12px;color:var(--text);background:var(--inp-bg);border:1px solid var(--inp-bdr);border-radius:7px;padding:6px 9px;outline:none;transition:border-color .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--inp-focus);background:var(--surface)}
+textarea{resize:vertical;line-height:1.5}
+.key-row{display:flex;gap:5px}
+.key-row input{flex:1;font-family:monospace;font-size:11px}
+.bxs{padding:0 8px;height:32px;font-family:inherit;font-size:11px;background:var(--inp-bg);border:1px solid var(--inp-bdr);border-radius:7px;cursor:pointer;color:var(--text-muted);white-space:nowrap;transition:border-color .15s}
+.bxs:hover{border-color:var(--inp-focus);color:var(--text)}
+.ksaved{display:none;font-size:10px;background:#e8f5e9;color:#2e7d32;border:1px solid #c8e6c9;border-radius:20px;padding:2px 7px;font-weight:700}
+.hint{font-size:10px;color:var(--text-hint);margin-top:2px}
+.cv-zone{border:1.5px dashed var(--inp-bdr);border-radius:7px;padding:11px;text-align:center;cursor:pointer;font-size:11px;color:var(--text-hint);position:relative;transition:border-color .15s}
+.cv-zone:hover{border-color:var(--inp-focus)}
+.cv-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:none;background:none;padding:0}
+.cv-zone.ok{border-color:#2e7d32;color:#2e7d32;background:#f1faf3}
+.bsave{width:100%;padding:7px;font-family:inherit;font-size:11px;font-weight:700;color:var(--text-muted);background:var(--inp-bg);border:1px solid var(--inp-bdr);border-radius:7px;cursor:pointer;transition:border-color .15s}
+.bsave:hover{border-color:var(--inp-focus);color:var(--text)}
+/* Historique */
+.hist-empty{font-size:12px;color:var(--text-hint);text-align:center;padding:24px 0}
+.hist-item{background:var(--surface);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;cursor:pointer;transition:border-color .15s}
+.hist-item:hover{border-color:var(--inp-focus)}
+.hist-company{font-size:12px;font-weight:700;color:var(--text)}
+.hist-job{font-size:11px;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-date{font-size:10px;color:var(--text-hint);margin-top:4px}
+.hist-del{float:right;background:none;border:none;cursor:pointer;color:var(--text-hint);font-size:14px;line-height:1;padding:0 2px}
+.hist-del:hover{color:#c0392b}
+/* Gen button */
+.gen-area{padding:12px 14px;flex-shrink:0;border-top:1px solid var(--bdr)}
+.bgen{width:100%;padding:10px;font-family:inherit;font-size:13px;font-weight:700;color:var(--acc-tx);background:var(--acc);border:none;border-radius:8px;cursor:pointer;transition:background .15s,opacity .15s}
+.bgen:hover{background:var(--acc-h)}
+.bgen:disabled{opacity:.4;cursor:not-allowed}
+.status{display:none;align-items:center;gap:8px;font-size:11px;color:var(--text-muted);padding-top:8px}
+.spin{width:13px;height:13px;border:2px solid var(--bdr);border-top-color:var(--text-muted);border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* ═══════════════ RIGHT PANEL ═══════════════ */
+.panel-r{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg);transition:background .2s}
+.toolbar{padding:10px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;background:var(--surface);flex-shrink:0;gap:12px}
+.tb-l{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tb-r{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.tb-label{font-size:11px;font-weight:700;color:var(--text-muted)}
+.wc-badge{font-size:10px;color:var(--text-hint);background:var(--inp-bg);border:1px solid var(--bdr);border-radius:20px;padding:2px 8px}
+.edit-hint{font-size:10px;color:var(--text-hint);font-style:italic}
+.size-row{display:flex;align-items:center;gap:6px}
+.size-row label{font-size:11px;color:var(--text-muted)}
+.size-row input[type="range"]{width:70px;padding:0;border:none;background:none;accent-color:var(--acc)}
+.size-val{font-size:11px;font-weight:700;color:var(--text);min-width:26px}
+.btn-tb{display:none;padding:5px 11px;font-family:inherit;font-size:11px;color:var(--text-muted);background:var(--surface);border:1px solid var(--bdr);border-radius:7px;cursor:pointer;transition:border-color .15s,color .15s}
+.btn-tb:hover{border-color:var(--inp-focus);color:var(--text)}
+.btn-tb.show{display:block}
+/* ═══════════════ LETTER AREA ═══════════════ */
+.letter-area{flex:1;overflow-y:auto;padding:28px 32px;display:flex;justify-content:center;align-items:flex-start}
+.letter-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:400px;gap:10px;color:var(--text-hint);font-size:13px;text-align:center;width:100%}
+.letter-placeholder .icon{font-size:40px;opacity:.5}
+.error-box{color:#c0392b;background:#fdf0ef;border:1px solid #f5c6c2;border-radius:8px;padding:12px 16px;font-size:12px;max-width:600px;width:100%}
+/* A4 Paper */
+.a4-wrap{width:210mm;min-height:297mm;background:var(--ltr-bg);box-shadow:var(--shadow);border-radius:3px;padding:22mm 20mm 20mm;font-size:13px;line-height:1.8;color:var(--text);transition:background .2s,color .2s;position:relative}
+/* Letter structure */
+.ltr-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10mm}
+.ltr-sender{line-height:1.65}
+.ltr-sender-name{font-weight:700;font-size:14px;display:block;margin-bottom:3px}
+.ltr-recipient{text-align:right;line-height:1.65}
+.ltr-attn-label{font-style:italic;color:var(--text-muted);font-size:.9em;display:block;margin-bottom:2px}
+.ltr-attn-service{display:block}
+.ltr-attn-company{display:block;font-weight:700;font-size:14px}
+.ltr-attn-city{display:block;color:var(--text-muted)}
+.ltr-date{text-align:right;color:var(--text-muted);font-size:.9em;margin-bottom:8mm}
+.ltr-object{font-weight:700;margin-bottom:7mm;border-left:3px solid var(--obj-bdr);padding-left:8px;border-radius:0}
+.ltr-salutation{margin-bottom:5mm}
+.ltr-body{margin-bottom:4mm}
+/* Paragraphe éditable avec hover regen */
+.ltr-para{position:relative;margin-bottom:5mm;text-align:justify;padding:4px 6px;margin-left:-6px;border-radius:4px;transition:background .15s}
+.ltr-para:last-child{margin-bottom:0}
+.ltr-para:hover{background:var(--para-hover)}
+.ltr-para.edited{background:var(--para-edit)}
+.regen-btn{display:none;position:absolute;top:2px;right:2px;padding:3px 7px;font-size:10px;font-weight:700;background:var(--acc);color:var(--acc-tx);border:none;border-radius:5px;cursor:pointer;opacity:.85;white-space:nowrap}
+.ltr-para:hover .regen-btn{display:block}
+.regen-btn:hover{opacity:1}
+.ltr-politesse{margin-top:6mm;margin-bottom:10mm}
+.ltr-sign{text-align:right;font-weight:700}
+/* Editable */
+[contenteditable="true"]{outline:none;cursor:text}
+[contenteditable="true"]:focus{background:var(--para-hover);border-radius:4px}
+/* Streaming cursor */
+.stream-cursor{display:inline-block;width:2px;height:1em;background:var(--acc);margin-left:2px;animation:blink .8s infinite;vertical-align:text-bottom}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+/* ═══════════════ FOCUS MODE ═══════════════ */
+.focus-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:center;justify-content:center;padding:24px}
+.focus-overlay.on{display:flex}
+.focus-content{background:var(--ltr-bg);width:210mm;max-height:90vh;overflow-y:auto;border-radius:6px;padding:22mm 20mm;box-shadow:0 8px 40px rgba(0,0,0,.3)}
+.focus-close{position:fixed;top:16px;right:20px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:7px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700}
+.focus-close:hover{background:rgba(255,255,255,.25)}
+/* ═══════════════ PRINT ═══════════════ */
+@media print{
+  header,.panel-l,.toolbar,.focus-overlay{display:none!important}
+  .layout{height:auto}
+  .panel-r{background:white}
+  .letter-area{padding:0}
+  .a4-wrap{box-shadow:none;border-radius:0;width:100%;min-height:auto;padding:15mm;background:white;color:#000}
+  .ltr-object{border-left-color:#000!important}
+  .regen-btn{display:none!important}
 }
-
-/* ═══════════════════════════════════════════
-   HEADER
-   ═══════════════════════════════════════════ */
-header {
-  background: var(--header-bg);
-  color: var(--header-text);
-  padding: 0 20px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
+@page{size:A4;margin:0}
+/* ═══════════════ MOBILE ═══════════════ */
+@media(max-width:700px){
+  .layout{flex-direction:column}
+  .panel-l{width:100%;height:auto;max-height:50vh;border-right:none;border-bottom:1px solid var(--bdr)}
+  .panel-r{height:50vh}
+  .letter-area{padding:12px}
+  .a4-wrap{width:100%;min-height:auto;padding:20px}
+  .ltr-header{flex-direction:column;gap:12px}
+  .ltr-recipient{text-align:left}
+  .hdr-r{gap:2px}
+  .hbtn{padding:3px 6px;font-size:10px}
+  .toolbar{flex-wrap:wrap;gap:6px}
 }
-.header-left { display: flex; align-items: center; gap: 12px; }
-.header-title { font-size: 14px; font-weight: 600; color: var(--header-text); }
-.badge {
-  font-size: 11px; padding: 2px 10px; border-radius: 20px; font-weight: 600;
-  background: var(--badge-bg); color: var(--badge-text);
-}
-.header-right { display: flex; align-items: center; gap: 6px; }
-
-/* Boutons d'option dans le header */
-.hbtn {
-  padding: 5px 10px; font-size: 12px; font-family: inherit; cursor: pointer;
-  border-radius: 6px; border: 1px solid rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.1); color: var(--header-text);
-  transition: background 0.15s;
-}
-.hbtn:hover { background: rgba(255,255,255,0.2); }
-.hbtn.active { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.5); }
-
-/* ═══════════════════════════════════════════
-   LAYOUT
-   ═══════════════════════════════════════════ */
-.layout { display: flex; height: calc(100vh - 50px); }
-
-/* ═══════════════════════════════════════════
-   PANNEAU GAUCHE
-   ═══════════════════════════════════════════ */
-.panel-left {
-  width: 300px; flex-shrink: 0;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex; flex-direction: column;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-/* Onglets */
-.tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.tab {
-  flex: 1; padding: 11px 0; font-size: 12px; font-weight: 600;
-  background: var(--sidebar-bg); color: var(--sidebar-text);
-  border: none; cursor: pointer; border-bottom: 2px solid transparent;
-  transition: color 0.15s, background 0.15s;
-}
-[data-design="A"] .tab { background: var(--surface); }
-[data-design="A"] .tab.active { background: var(--tab-active-bg); color: var(--tab-active-tx); border-bottom-color: transparent; }
-[data-design="C"] .tab { background: var(--sidebar-bg); color: var(--sidebar-text); }
-[data-design="C"] .tab.active { background: var(--tab-active-bg); color: var(--tab-active-tx); }
-
-.tab-content { display: none; flex: 1; overflow-y: auto; padding: 16px; flex-direction: column; gap: 12px; }
-.tab-content.active { display: flex; }
-
-/* Champs */
-.field-group { display: flex; flex-direction: column; gap: 4px; }
-.field-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
-
-input, textarea, select {
-  width: 100%; font-family: inherit; font-size: 12px;
-  color: var(--text); background: var(--input-bg);
-  border: 1px solid var(--input-border); border-radius: 7px;
-  padding: 7px 9px; outline: none;
-  transition: border-color 0.15s, background 0.15s;
-}
-input:focus, textarea:focus, select:focus {
-  border-color: var(--input-focus); background: var(--surface);
-}
-textarea { resize: vertical; line-height: 1.5; }
-
-.sep { border: none; border-top: 1px solid var(--border); margin: 2px 0; }
-
-/* Clé API */
-.key-row { display: flex; gap: 6px; }
-.key-row input { flex: 1; font-family: monospace; font-size: 11px; }
-.btn-xs {
-  padding: 0 9px; height: 33px; font-family: inherit; font-size: 11px;
-  background: var(--input-bg); border: 1px solid var(--input-border);
-  border-radius: 7px; cursor: pointer; color: var(--text-muted); white-space: nowrap;
-}
-.btn-xs:hover { border-color: var(--input-focus); color: var(--text); }
-
-.key-saved { display:none; font-size:10px; background:#e8f5e9; color:#2e7d32; border:1px solid #c8e6c9; border-radius:20px; padding:2px 7px; font-weight:700; }
-.hint { font-size: 10px; color: var(--text-hint); margin-top: 2px; }
-
-/* Upload CV */
-.cv-zone {
-  border: 1.5px dashed var(--input-border); border-radius: 7px;
-  padding: 12px; text-align: center; cursor: pointer;
-  font-size: 11px; color: var(--text-hint); position: relative;
-  transition: border-color 0.15s;
-}
-.cv-zone:hover { border-color: var(--input-focus); color: var(--text-muted); }
-.cv-zone input[type="file"] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; border:none; background:none; padding:0; }
-.cv-zone.ok { border-color:#2e7d32; color:#2e7d32; background:#f1faf3; }
-
-/* Bouton sauvegarder profil */
-.btn-save-profile {
-  width: 100%; padding: 8px; font-family: inherit; font-size: 12px; font-weight: 600;
-  color: var(--text-muted); background: var(--input-bg);
-  border: 1px solid var(--input-border); border-radius: 7px; cursor: pointer;
-}
-.btn-save-profile:hover { border-color: var(--input-focus); color: var(--text); }
-
-/* Zone bas : bouton générer */
-.gen-area { padding: 12px 16px 12px; flex-shrink: 0; border-top: 1px solid var(--border); }
-.btn-gen {
-  width: 100%; padding: 10px; font-family: inherit; font-size: 13px; font-weight: 700;
-  color: var(--accent-text); background: var(--accent);
-  border: none; border-radius: 8px; cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
-}
-.btn-gen:hover { background: var(--accent-hover); }
-.btn-gen:disabled { opacity: 0.4; cursor: not-allowed; }
-
-.status { display:none; align-items:center; gap:8px; font-size:11px; color:var(--text-muted); padding-top:8px; }
-.spinner { width:13px; height:13px; border:2px solid var(--border); border-top-color:var(--text-muted); border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0; }
-@keyframes spin { to { transform:rotate(360deg); } }
-
-/* ═══════════════════════════════════════════
-   PANNEAU DROIT
-   ═══════════════════════════════════════════ */
-.panel-right { flex:1; display:flex; flex-direction:column; background:var(--bg); transition:background 0.2s; }
-
-.right-toolbar {
-  padding: 12px 24px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--surface); flex-shrink: 0;
-}
-.toolbar-left { display:flex; align-items:center; gap:12px; }
-.toolbar-right { display:flex; align-items:center; gap:8px; }
-
-.toolbar-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
-
-/* Slider taille de police */
-.size-control { display:flex; align-items:center; gap:8px; }
-.size-control label { font-size:11px; color:var(--text-muted); white-space:nowrap; }
-.size-control input[type="range"] {
-  width: 80px; height: auto; padding: 0; border: none; background: none;
-  accent-color: var(--accent);
-}
-.size-val { font-size:11px; color:var(--text); font-weight:600; min-width:28px; }
-
-.btn-toolbar {
-  display:none; padding:6px 12px; font-family:inherit; font-size:12px;
-  color:var(--text-muted); background:var(--surface);
-  border:1px solid var(--border); border-radius:7px; cursor:pointer;
-}
-.btn-toolbar:hover { border-color:var(--input-focus); color:var(--text); }
-.btn-toolbar.show { display:block; }
-
-.edit-hint { display:none; font-size:11px; color:var(--text-hint); font-style:italic; }
-.edit-hint.show { display:block; }
-
-/* Zone lettre */
-.letter-area { flex:1; overflow-y:auto; padding:24px 32px; }
-
-.letter-placeholder {
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  min-height:400px; gap:10px; color:var(--text-hint); font-size:13px; text-align:center;
-}
-
-.error-box { color:#c0392b; background:#fdf0ef; border:1px solid #f5c6c2; border-radius:8px; padding:12px 16px; font-size:12px; }
-
-/* ═══════════════════════════════════════════
-   LETTRE
-   ═══════════════════════════════════════════ */
-.letter-wrapper {
-  background: var(--letter-bg);
-  border: 1px solid var(--letter-border);
-  border-radius: 12px;
-  padding: 40px 44px;
-  line-height: 1.8;
-  color: var(--text);
-  max-width: 760px;
-  margin: 0 auto;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.letter-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; }
-
-.letter-sender { line-height:1.65; }
-.sender-name { font-weight:700; display:block; margin-bottom:3px; }
-
-.letter-recipient { text-align:right; line-height:1.65; }
-.attn-label { font-style:italic; color:var(--text-muted); font-size:0.9em; display:block; margin-bottom:1px; }
-.attn-service { display:block; }
-.attn-company { display:block; font-weight:700; }
-.attn-city { display:block; color:var(--text-muted); }
-
-.letter-date { text-align:right; color:var(--text-muted); margin-bottom:18px; }
-
-.letter-object {
-  font-weight:700; margin-bottom:18px;
-  border-left:3px solid var(--accent); padding-left:8px;
-  border-radius:0;
-}
-
-.letter-salutation { margin-bottom:14px; }
-
-.letter-body p { margin-bottom:14px; text-align:justify; }
-.letter-body p:last-child { margin-bottom:0; }
-
-.letter-politesse { margin-top:14px; margin-bottom:24px; }
-
-.letter-sign { text-align:right; font-weight:700; }
-
-/* Editable styles */
-[contenteditable="true"] { outline:none; cursor:text; }
-[contenteditable="true"]:hover { background:rgba(128,128,128,0.05); border-radius:4px; }
-[contenteditable="true"]:focus { background:rgba(128,128,128,0.08); border-radius:4px; }
-
-/* ═══════════════════════════════════════════
-   IMPRESSION
-   ═══════════════════════════════════════════ */
-@media print {
-  header, .panel-left, .right-toolbar { display:none !important; }
-  .layout { height:auto; }
-  .panel-right { background:white; }
-  .letter-area { padding:0; }
-  .letter-wrapper { border:none; border-radius:0; padding:18mm 20mm; max-width:100%; background:white; color:#000; }
-  .letter-object { border-left-color:#000 !important; }
-}
-@page { size:A4; margin:0; }
 </style>
 </head>
 <body>
 
 <!-- ══ HEADER ══ -->
 <header>
-  <div class="header-left">
-    <span class="header-title">Lettre de Motivation</span>
+  <div class="hdr-l">
+    <span class="hdr-logo">✉ MotivAI</span>
     <span class="badge">Groq · Gratuit</span>
   </div>
-  <div class="header-right">
-    <!-- Choix du design -->
-    <button class="hbtn active" id="btnA" onclick="setDesign('A')">Design A</button>
-    <button class="hbtn" id="btnC" onclick="setDesign('C')">Design C</button>
-    <!-- Séparateur -->
-    <span style="width:1px;height:18px;background:rgba(255,255,255,0.2);display:inline-block;margin:0 4px;"></span>
-    <!-- Thème -->
-    <button class="hbtn active" id="btnLight" onclick="setTheme('light')">☀ Clair</button>
-    <button class="hbtn" id="btnDark" onclick="setTheme('dark')">☾ Sombre</button>
-    <button class="hbtn" id="btnSystem" onclick="setTheme('system')">⚙ Système</button>
+  <div class="hdr-r">
+    <button class="hbtn on" id="btnA" onclick="setDesign('A')">Minimal</button>
+    <button class="hbtn" id="btnC" onclick="setDesign('C')">Marine</button>
+    <div class="hdiv"></div>
+    <button class="hbtn on" id="btnLight" onclick="setTheme('light')">☀</button>
+    <button class="hbtn" id="btnDark" onclick="setTheme('dark')">☾</button>
+    <button class="hbtn" id="btnSystem" onclick="setTheme('system')">⚙</button>
+    <div class="hdiv"></div>
+    <button class="hbtn" id="btnFocus" onclick="openFocus()" title="Mode lecture">⛶ Focus</button>
   </div>
 </header>
 
 <div class="layout">
 
-  <!-- ══ PANNEAU GAUCHE ══ -->
-  <div class="panel-left">
+  <!-- ══ LEFT PANEL ══ -->
+  <div class="panel-l" id="panelLeft">
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('profil')">👤 Profil</button>
+      <button class="tab on" onclick="switchTab('profil')">👤 Profil</button>
       <button class="tab" onclick="switchTab('poste')">💼 Poste</button>
+      <button class="tab" onclick="switchTab('hist')">🕐 Historique</button>
     </div>
 
-    <!-- ONGLET PROFIL -->
-    <div class="tab-content active" id="tab-profil">
-
-      <div class="field-group">
-        <label class="field-label">
-          Clé API Groq
-          <span class="key-saved" id="keySavedBadge">🔒 OK</span>
-        </label>
-        <div id="keySavedView" style="display:none;gap:6px;align-items:center;">
-          <input type="password" value="••••••••••••••••••••" readonly style="flex:1;color:var(--text-hint);cursor:default;"/>
-          <button class="btn-xs" onclick="resetKey()">Changer</button>
+    <!-- PROFIL -->
+    <div class="tab-pane on" id="tp-profil">
+      <div class="fg">
+        <label class="fl">Clé API Groq <span class="ksaved" id="kbadge">🔒 OK</span></label>
+        <div id="kSaved" style="display:none;gap:5px;align-items:center;">
+          <input type="password" value="••••••••••••••••••••" readonly style="flex:1;color:var(--text-hint);cursor:default"/>
+          <button class="bxs" onclick="resetKey()">Changer</button>
         </div>
-        <div id="keyInputView" class="key-row">
+        <div id="kInput" class="key-row">
           <input type="password" id="apiKey" placeholder="gsk_..."/>
-          <button class="btn-xs" onclick="saveKey()">💾 Sauver</button>
+          <button class="bxs" onclick="saveKey()">💾</button>
         </div>
-        <span class="hint" id="keyHint">Saisis ta clé puis clique Sauver</span>
+        <span class="hint" id="kHint">Colle ta clé puis clique 💾</span>
       </div>
-
       <div class="sep"></div>
-
-      <div class="field-group">
-        <label class="field-label">Prénom Nom</label>
-        <input type="text" id="userName" placeholder="Jean Dupont"/>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Adresse</label>
-        <input type="text" id="userAddress" placeholder="12 rue de la Paix"/>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Ville & Code postal</label>
-        <input type="text" id="userCity" placeholder="75001 Paris"/>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Téléphone</label>
-        <input type="tel" id="userTel" placeholder="+33 6 00 00 00 00"/>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Email</label>
-        <input type="email" id="userEmail" placeholder="prenom.nom@email.com"/>
-      </div>
-
+      <div class="fg"><label class="fl">Prénom Nom</label><input id="uName" placeholder="Jean Dupont"/></div>
+      <div class="fg"><label class="fl">Adresse</label><input id="uAddr" placeholder="12 rue de la Paix"/></div>
+      <div class="fg"><label class="fl">Ville & CP</label><input id="uCity" placeholder="75001 Paris"/></div>
+      <div class="fg"><label class="fl">Téléphone</label><input type="tel" id="uTel" placeholder="+33 6 00 00 00 00"/></div>
+      <div class="fg"><label class="fl">Email</label><input type="email" id="uEmail" placeholder="prenom.nom@email.com"/></div>
       <div class="sep"></div>
-
-      <div class="field-group">
-        <label class="field-label">CV (PDF)</label>
+      <div class="fg">
+        <label class="fl">CV (PDF)</label>
         <div class="cv-zone" id="cvZone">
           <input type="file" id="cvFile" accept=".pdf" onchange="loadCV(event)"/>
-          <span id="cvZoneText">📄 Uploader ton CV (PDF)</span>
+          <span id="cvZoneTxt">📄 Uploader ton CV</span>
         </div>
       </div>
-      <div class="field-group">
-        <label class="field-label">Ou colle le texte de ton CV</label>
-        <textarea id="cvText" rows="5" placeholder="Expériences, formations, compétences..."></textarea>
-      </div>
-
-      <button class="btn-save-profile" onclick="saveProfile()">💾 Sauvegarder le profil</button>
-      <span class="hint" id="profileHint"></span>
-
+      <div class="fg"><label class="fl">Ou colle le texte du CV</label><textarea id="cvText" rows="5" placeholder="Expériences, formations, compétences..."></textarea></div>
+      <button class="bsave" onclick="saveProfile()">💾 Sauvegarder le profil</button>
+      <span class="hint" id="pHint"></span>
     </div>
 
-    <!-- ONGLET POSTE -->
-    <div class="tab-content" id="tab-poste">
-      <div class="field-group">
-        <label class="field-label">Entreprise</label>
-        <input type="text" id="employer" placeholder="Ex: Safran Landing Systems"/>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Destinataire</label>
-        <input type="text" id="recipient" placeholder="Ex: Responsable de recrutement"/>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Ville de l'employeur</label>
-        <input type="text" id="employerCity" placeholder="Ex: Vélizy-Villacoublay"/>
-      </div>
+    <!-- POSTE -->
+    <div class="tab-pane" id="tp-poste">
+      <div class="fg"><label class="fl">Entreprise</label><input id="employer" placeholder="Ex: Safran Landing Systems"/></div>
+      <div class="fg"><label class="fl">Destinataire</label><input id="recipient" placeholder="Ex: Responsable de recrutement"/></div>
+      <div class="fg"><label class="fl">Ville employeur</label><input id="empCity" placeholder="Ex: Vélizy-Villacoublay"/></div>
       <div class="sep"></div>
-      <div class="field-group">
-        <label class="field-label">Titre du poste</label>
-        <input type="text" id="jobTitle" placeholder="Ex: Alternant Ingénieur Sécurité"/>
+      <div class="fg"><label class="fl">Titre du poste</label><input id="jobTitle" placeholder="Ex: Alternant Ingénieur Sécurité"/></div>
+      <div class="fg">
+        <label class="fl">Ton de la lettre</label>
+        <select id="tone">
+          <option value="formel">🏛 Formel — Grand groupe / administration</option>
+          <option value="dynamique">⚡ Dynamique — Startup / entreprise tech</option>
+          <option value="concis">📌 Concis — Maximum d'impact, minimum de mots</option>
+        </select>
       </div>
-      <div class="field-group">
-        <label class="field-label">Description du poste</label>
-        <textarea id="jobDesc" rows="11" placeholder="Collez ici la description complète..."></textarea>
-      </div>
+      <div class="fg"><label class="fl">Description du poste</label><textarea id="jobDesc" rows="11" placeholder="Collez ici la description complète..."></textarea></div>
     </div>
 
-    <!-- Bouton générer -->
+    <!-- HISTORIQUE -->
+    <div class="tab-pane" id="tp-hist">
+      <div id="histList"><div class="hist-empty">Aucune lettre générée pour l'instant.</div></div>
+    </div>
+
     <div class="gen-area">
-      <button class="btn-gen" id="genBtn" onclick="generate()">Générer la lettre →</button>
-      <div class="status" id="statusBar">
-        <div class="spinner"></div>
-        <span>Génération en cours...</span>
-      </div>
+      <button class="bgen" id="genBtn" onclick="generate()">Générer la lettre →</button>
+      <div class="status" id="statusBar"><div class="spin"></div><span id="statusTxt">Génération...</span></div>
     </div>
   </div>
 
-  <!-- ══ PANNEAU DROIT ══ -->
-  <div class="panel-right">
-
-    <div class="right-toolbar">
-      <div class="toolbar-left">
-        <span class="toolbar-label">Aperçu</span>
-        <span class="edit-hint" id="editHint">✏ Cliquez sur le texte pour modifier</span>
+  <!-- ══ RIGHT PANEL ══ -->
+  <div class="panel-r">
+    <div class="toolbar">
+      <div class="tb-l">
+        <span class="tb-label">Aperçu</span>
+        <span class="wc-badge" id="wcBadge" style="display:none">0 mots</span>
+        <span class="edit-hint" id="editHint" style="display:none">✏ Cliquez pour modifier</span>
       </div>
-      <div class="toolbar-right">
-        <!-- Taille de police -->
-        <div class="size-control">
+      <div class="tb-r">
+        <div class="size-row">
           <label>Taille :</label>
-          <input type="range" id="fontSlider" min="9" max="16" step="1" value="13" oninput="updateFontSize(this.value)"/>
-          <span class="size-val" id="fontVal">13px</span>
+          <input type="range" id="fsSlider" min="9" max="16" step="1" value="13" oninput="setFS(this.value)"/>
+          <span class="size-val" id="fsVal">13px</span>
         </div>
-        <button class="btn-toolbar" id="btnCopy" onclick="copyLetter()">Copier</button>
-        <button class="btn-toolbar" id="btnPrint" onclick="window.print()">⬇ PDF</button>
+        <button class="btn-tb" id="btnCopy" onclick="copyLetter()">Copier</button>
+        <button class="btn-tb" id="btnDocx" onclick="exportDocx()">⬇ Word</button>
+        <button class="btn-tb" id="btnPDF" onclick="window.print()">⬇ PDF</button>
       </div>
     </div>
-
     <div class="letter-area" id="letterArea">
       <div class="letter-placeholder">
-        <span style="font-size:36px;">✉</span>
-        <span>Remplis ton profil et le poste,<br>puis clique sur <strong>Générer la lettre</strong></span>
+        <div class="icon">✉</div>
+        <span>Remplis ton <strong>Profil</strong> et le <strong>Poste</strong>,<br>puis clique sur <strong>Générer la lettre</strong></span>
       </div>
     </div>
-
   </div>
 </div>
 
+<!-- ══ FOCUS OVERLAY ══ -->
+<div class="focus-overlay" id="focusOverlay" onclick="closeFocusIfBg(event)">
+  <button class="focus-close" onclick="closeFocus()">✕ Fermer</button>
+  <div class="focus-content" id="focusContent"></div>
+</div>
+
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const sysMq=window.matchMedia('(prefers-color-scheme: dark)');
 
-/* ── Thème ───────────────────────────────── */
-let systemMq = window.matchMedia('(prefers-color-scheme: dark)');
+/* ══ THEME ══ */
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t==='system'?(sysMq.matches?'dark':'light'):t)}
+function setTheme(t){
+  localStorage.setItem('lm_theme',t);applyTheme(t);
+  ['Light','Dark','System'].forEach(x=>document.getElementById('btn'+x).classList.toggle('on',x.toLowerCase()===t));
+}
+sysMq.addEventListener('change',()=>{if(localStorage.getItem('lm_theme')==='system')applyTheme('system')});
 
-function applyTheme(theme) {
-  const root = document.documentElement;
-  if (theme === 'system') {
-    root.setAttribute('data-theme', systemMq.matches ? 'dark' : 'light');
-  } else {
-    root.setAttribute('data-theme', theme);
+/* ══ DESIGN ══ */
+function setDesign(d){
+  document.documentElement.setAttribute('data-design',d);localStorage.setItem('lm_design',d);
+  document.getElementById('btnA').classList.toggle('on',d==='A');
+  document.getElementById('btnC').classList.toggle('on',d==='C');
+}
+
+/* ══ TABS ══ */
+function switchTab(n){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('on'));
+  document.querySelector(`[onclick="switchTab('${n}')"]`).classList.add('on');
+  document.getElementById('tp-'+n).classList.add('on');
+  if(n==='hist')renderHist();
+}
+
+/* ══ KEY ══ */
+function loadKey(){
+  if(localStorage.getItem('groq_api_key')){
+    document.getElementById('kInput').style.display='none';
+    document.getElementById('kSaved').style.display='flex';
+    document.getElementById('kbadge').style.display='inline';
+    document.getElementById('kHint').textContent='Clé chargée 🔒';
   }
 }
-
-function setTheme(t) {
-  localStorage.setItem('lm_theme', t);
-  applyTheme(t);
-  ['Light','Dark','System'].forEach(x => {
-    document.getElementById('btn'+x).classList.toggle('active', x.toLowerCase() === t);
-  });
+function saveKey(){
+  const k=document.getElementById('apiKey').value.trim();
+  if(!k.startsWith('gsk_'))return alert('Clé invalide (doit commencer par gsk_)');
+  localStorage.setItem('groq_api_key',k);
+  document.getElementById('apiKey').value='';
+  document.getElementById('kInput').style.display='none';
+  document.getElementById('kSaved').style.display='flex';
+  document.getElementById('kbadge').style.display='inline';
+  document.getElementById('kHint').textContent='Clé enregistrée 🔒';
 }
-
-systemMq.addEventListener('change', () => {
-  if (localStorage.getItem('lm_theme') === 'system') applyTheme('system');
-});
-
-/* ── Design ──────────────────────────────── */
-function setDesign(d) {
-  document.documentElement.setAttribute('data-design', d);
-  localStorage.setItem('lm_design', d);
-  document.getElementById('btnA').classList.toggle('active', d === 'A');
-  document.getElementById('btnC').classList.toggle('active', d === 'C');
-}
-
-/* ── Onglets ─────────────────────────────── */
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
-  document.getElementById('tab-' + name).classList.add('active');
-}
-
-/* ── Clé API ─────────────────────────────── */
-function loadKey() {
-  if (localStorage.getItem('groq_api_key')) {
-    document.getElementById('keyInputView').style.display = 'none';
-    document.getElementById('keySavedView').style.display = 'flex';
-    document.getElementById('keySavedBadge').style.display = 'inline';
-    document.getElementById('keyHint').textContent = 'Clé chargée automatiquement 🔒';
-  }
-}
-function saveKey() {
-  const k = document.getElementById('apiKey').value.trim();
-  if (!k.startsWith('gsk_')) return alert('Clé invalide. Elle doit commencer par gsk_');
-  localStorage.setItem('groq_api_key', k);
-  document.getElementById('apiKey').value = '';
-  document.getElementById('keyInputView').style.display = 'none';
-  document.getElementById('keySavedView').style.display = 'flex';
-  document.getElementById('keySavedBadge').style.display = 'inline';
-  document.getElementById('keyHint').textContent = 'Clé enregistrée 🔒';
-}
-function resetKey() {
-  if (!confirm('Supprimer la clé enregistrée ?')) return;
+function resetKey(){
+  if(!confirm('Supprimer la clé ?'))return;
   localStorage.removeItem('groq_api_key');
-  document.getElementById('keySavedView').style.display = 'none';
-  document.getElementById('keyInputView').style.display = 'flex';
-  document.getElementById('keySavedBadge').style.display = 'none';
-  document.getElementById('keyHint').textContent = 'Saisis ta clé puis clique Sauver';
+  document.getElementById('kSaved').style.display='none';
+  document.getElementById('kInput').style.display='flex';
+  document.getElementById('kbadge').style.display='none';
+  document.getElementById('kHint').textContent='Colle ta clé puis clique 💾';
 }
-function getKey() { return localStorage.getItem('groq_api_key') || document.getElementById('apiKey').value.trim(); }
+function getKey(){return localStorage.getItem('groq_api_key')||document.getElementById('apiKey').value.trim()}
 
-/* ── Profil ──────────────────────────────── */
-function saveProfile() {
-  localStorage.setItem('user_profile', JSON.stringify({
-    name:    document.getElementById('userName').value.trim(),
-    address: document.getElementById('userAddress').value.trim(),
-    city:    document.getElementById('userCity').value.trim(),
-    tel:     document.getElementById('userTel').value.trim(),
-    email:   document.getElementById('userEmail').value.trim(),
-    cvText:  document.getElementById('cvText').value.trim()
+/* ══ PROFILE ══ */
+function saveProfile(){
+  localStorage.setItem('user_profile',JSON.stringify({
+    name:document.getElementById('uName').value.trim(),
+    address:document.getElementById('uAddr').value.trim(),
+    city:document.getElementById('uCity').value.trim(),
+    tel:document.getElementById('uTel').value.trim(),
+    email:document.getElementById('uEmail').value.trim(),
+    cvText:document.getElementById('cvText').value.trim()
   }));
-  document.getElementById('profileHint').textContent = '✅ Profil sauvegardé';
-  setTimeout(() => document.getElementById('profileHint').textContent = '', 2500);
+  document.getElementById('pHint').textContent='✅ Sauvegardé';
+  setTimeout(()=>document.getElementById('pHint').textContent='',2500);
 }
-function loadProfile() {
-  const s = localStorage.getItem('user_profile');
-  if (!s) return;
-  const p = JSON.parse(s);
-  document.getElementById('userName').value    = p.name    || '';
-  document.getElementById('userAddress').value = p.address || '';
-  document.getElementById('userCity').value    = p.city    || '';
-  document.getElementById('userTel').value     = p.tel     || '';
-  document.getElementById('userEmail').value   = p.email   || '';
-  document.getElementById('cvText').value      = p.cvText  || '';
+function loadProfile(){
+  const s=localStorage.getItem('user_profile');if(!s)return;
+  const p=JSON.parse(s);
+  ['Name','Addr','City','Tel','Email'].forEach(k=>document.getElementById('u'+k).value=p[k.toLowerCase()]||'');
+  document.getElementById('cvText').value=p.cvText||'';
 }
-function getProfile() {
-  return {
-    name:    document.getElementById('userName').value.trim(),
-    address: document.getElementById('userAddress').value.trim(),
-    city:    document.getElementById('userCity').value.trim(),
-    tel:     document.getElementById('userTel').value.trim(),
-    email:   document.getElementById('userEmail').value.trim()
+function getProfile(){
+  return{
+    name:document.getElementById('uName').value.trim(),
+    address:document.getElementById('uAddr').value.trim(),
+    city:document.getElementById('uCity').value.trim(),
+    tel:document.getElementById('uTel').value.trim(),
+    email:document.getElementById('uEmail').value.trim()
   };
 }
 
-/* ── CV Upload ───────────────────────────── */
-async function loadCV(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  document.getElementById('cvZoneText').textContent = '⏳ Lecture...';
-  try {
-    const ab  = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
-    let text  = '';
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page    = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      text += content.items.map(x => x.str).join(' ') + '\n';
+/* ══ CV UPLOAD ══ */
+async function loadCV(e){
+  const f=e.target.files[0];if(!f)return;
+  document.getElementById('cvZoneTxt').textContent='⏳ Lecture...';
+  try{
+    const ab=await f.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    let txt='';
+    for(let i=1;i<=pdf.numPages;i++){
+      const pg=await pdf.getPage(i);
+      const ct=await pg.getTextContent();
+      txt+=ct.items.map(x=>x.str).join(' ')+'\n';
     }
-    document.getElementById('cvText').value = text;
+    document.getElementById('cvText').value=txt;
     document.getElementById('cvZone').classList.add('ok');
-    document.getElementById('cvZoneText').textContent = '✅ ' + file.name;
-  } catch {
-    document.getElementById('cvZoneText').textContent = '❌ Erreur lecture';
+    document.getElementById('cvZoneTxt').textContent='✅ '+f.name;
+  }catch{
+    document.getElementById('cvZoneTxt').textContent='❌ Erreur';
     document.getElementById('cvZone').classList.remove('ok');
   }
 }
 
-/* ── Taille de police ────────────────────── */
-function updateFontSize(v) {
-  document.getElementById('fontVal').textContent = v + 'px';
-  const lw = document.getElementById('letterContent');
-  if (lw) lw.style.fontSize = v + 'px';
+/* ══ FONT SIZE ══ */
+function setFS(v){
+  document.getElementById('fsVal').textContent=v+'px';
+  const lw=document.getElementById('a4Letter');
+  if(lw)lw.style.fontSize=v+'px';
 }
 
-/* ── Génération ──────────────────────────── */
-function getToday() {
-  return new Date().toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+/* ══ WORD COUNT ══ */
+function updateWC(){
+  const el=document.getElementById('a4Letter');
+  if(!el)return;
+  const words=el.innerText.trim().split(/\s+/).filter(w=>w).length;
+  const badge=document.getElementById('wcBadge');
+  badge.style.display='inline';
+  const pages=words>400?'~2 pages':words>220?'~1 page':'< 1 page';
+  badge.textContent=`${words} mots · ${pages}`;
 }
 
-async function generate() {
-  const apiKey       = getKey();
-  const profile      = getProfile();
-  const cvContent    = document.getElementById('cvText').value.trim();
-  const employer     = document.getElementById('employer').value.trim();
-  const recipient    = document.getElementById('recipient').value.trim();
-  const employerCity = document.getElementById('employerCity').value.trim();
-  const jobTitle     = document.getElementById('jobTitle').value.trim();
-  const jobDesc      = document.getElementById('jobDesc').value.trim();
+/* ══ HISTORY ══ */
+function getHist(){return JSON.parse(localStorage.getItem('lm_hist')||'[]')}
+function saveHist(h){localStorage.setItem('lm_hist',JSON.stringify(h))}
+function addToHist(entry){
+  const h=getHist();
+  h.unshift({...entry,id:Date.now(),date:new Date().toLocaleDateString('fr-FR')});
+  saveHist(h.slice(0,20));
+}
+function renderHist(){
+  const h=getHist();
+  const el=document.getElementById('histList');
+  if(!h.length){el.innerHTML='<div class="hist-empty">Aucune lettre générée.</div>';return;}
+  el.innerHTML=h.map(e=>`
+    <div class="hist-item" onclick="restoreHist(${e.id})">
+      <button class="hist-del" onclick="event.stopPropagation();deleteHist(${e.id})">✕</button>
+      <div class="hist-company">${e.employer||'—'}</div>
+      <div class="hist-job">${e.jobTitle||'—'}</div>
+      <div class="hist-date">${e.date}</div>
+    </div>`).join('');
+}
+function deleteHist(id){
+  saveHist(getHist().filter(e=>e.id!==id));renderHist();
+}
+function restoreHist(id){
+  const e=getHist().find(x=>x.id===id);if(!e)return;
+  document.getElementById('employer').value=e.employer||'';
+  document.getElementById('recipient').value=e.recipient||'';
+  document.getElementById('empCity').value=e.empCity||'';
+  document.getElementById('jobTitle').value=e.jobTitle||'';
+  document.getElementById('jobDesc').value=e.jobDesc||'';
+  renderLetter(e);
+  switchTab('poste');
+  ['btnCopy','btnDocx','btnPDF'].forEach(id=>document.getElementById(id).classList.add('show'));
+  document.getElementById('editHint').style.display='block';
+  updateWC();
+}
 
-  if (!apiKey)       return alert('Aucune clé API. Renseigne-la dans l\'onglet Profil.');
-  if (!profile.name) return alert('Renseigne ton nom dans l\'onglet Profil.');
-  if (!cvContent)    return alert('Ajoute ton CV dans l\'onglet Profil.');
-  if (!jobTitle)     return alert('Renseigne le titre du poste dans l\'onglet Poste.');
-  if (!jobDesc)      return alert('Renseigne la description du poste.');
+/* ══ TONE ══ */
+function getToneInstructions(){
+  const t=document.getElementById('tone').value;
+  const m={
+    formel:'Utilise un registre soutenu et formel. Phrases complètes et construites. Tutoiement proscrit.',
+    dynamique:'Ton direct, énergique et moderne. Valorise l\'impact et les résultats concrets. Phrases courtes et percutantes.',
+    concis:'Sois ultra-concis. Chaque phrase doit apporter une information nouvelle. Évite toute redondance. Va à l\'essentiel.'
+  };
+  return m[t]||m.formel;
+}
 
-  document.getElementById('genBtn').disabled = true;
-  document.getElementById('statusBar').style.display = 'flex';
-  ['btnCopy','btnPrint'].forEach(id => document.getElementById(id).classList.remove('show'));
+/* ══ PROMPT BUILDER ══ */
+function buildPrompt(cvContent,employer,jobTitle,jobDesc,extra=''){
+  return`Tu es un expert en rédaction de lettres de motivation françaises professionnelles.
 
-  const prompt = `Tu es un expert en rédaction de lettres de motivation françaises professionnelles.
+RÈGLES ABSOLUES :
+- Utilise UNIQUEMENT les informations du CV ci-dessous. N'invente rien.
+- N'ajoute aucun diplôme, école ou compétence absent du CV.
+- Sépare chaque paragraphe par une LIGNE VIDE.
+- La formule de politesse est sur sa propre ligne, séparée du reste par une LIGNE VIDE.
+- Retourne UNIQUEMENT le corps (paragraphes + formule). Pas d'objet, de date, ni de coordonnées.
+- ${getToneInstructions()}
+${extra}
 
-RÈGLES STRICTES :
-- Utilise UNIQUEMENT les informations présentes dans le CV fourni.
-- N'invente aucun diplôme, école, entreprise ou compétence absente du CV.
-- Évite les répétitions de mots comme "je suis convaincu", "particulièrement", "stimulant".
-- Chaque paragraphe est séparé d'une LIGNE VIDE.
-- La formule de politesse est sur sa propre ligne, séparée du dernier paragraphe par une LIGNE VIDE.
-- Retourne UNIQUEMENT le corps de la lettre : pas d'objet, pas de date, pas de coordonnées.
-
-CV DU CANDIDAT :
+CV :
 ---
-${cvContent.slice(0, 3000)}
+${cvContent.slice(0,3000)}
 ---
-
 POSTE : ${jobTitle}
 EMPLOYEUR : ${employer}
 DESCRIPTION :
-${jobDesc.slice(0, 2000)}
+${jobDesc.slice(0,2000)}
 
-Structure :
-- Paragraphe 1 : accroche, lien formation/expérience avec ce poste
-- Paragraphe 2 : expériences concrètes du CV liées aux missions
-- Paragraphe 3 : motivation pour cet employeur + disponibilité
-
-[ligne vide]
-Formule de politesse seule sur sa ligne.`;
-
-  try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.4
-      })
-    });
-    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'Erreur API'); }
-    const data = await res.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    if (!text) throw new Error('Réponse vide.');
-    renderLetter({ profile, employer, recipient, employerCity, jobTitle, body: text });
-    ['btnCopy','btnPrint'].forEach(id => document.getElementById(id).classList.add('show'));
-    document.getElementById('editHint').classList.add('show');
-    const fs = document.getElementById('fontSlider').value;
-    document.getElementById('letterContent').style.fontSize = fs + 'px';
-  } catch(e) {
-    document.getElementById('letterArea').innerHTML = `<div class="error-box">Erreur : ${e.message}</div>`;
-  }
-
-  document.getElementById('genBtn').disabled = false;
-  document.getElementById('statusBar').style.display = 'none';
+Structure : paragraphe 1 (accroche/formation), paragraphe 2 (expériences concrètes), paragraphe 3 (motivation/disponibilité), puis formule de politesse seule.`;
 }
 
-/* ── Rendu lettre ────────────────────────── */
-function renderLetter({ profile, employer, recipient, employerCity, jobTitle, body }) {
-  const blocks = body.split(/\n\s*\n/).map(b => b.trim()).filter(b => b.length > 0);
-  const politesse = blocks.length > 1 ? blocks.pop() : 'Dans l\'attente de votre retour, je vous adresse mes cordiales salutations.';
-  const parasHtml = blocks.map(b => `<p>${b.replace(/\n/g, ' ')}</p>`).join('');
+/* ══ GENERATE (streaming) ══ */
+async function generate(){
+  const apiKey=getKey(),profile=getProfile();
+  const cvContent=document.getElementById('cvText').value.trim();
+  const employer=document.getElementById('employer').value.trim();
+  const recipient=document.getElementById('recipient').value.trim();
+  const empCity=document.getElementById('empCity').value.trim();
+  const jobTitle=document.getElementById('jobTitle').value.trim();
+  const jobDesc=document.getElementById('jobDesc').value.trim();
 
-  document.getElementById('letterArea').innerHTML = `
-    <div class="letter-wrapper" id="letterContent">
-      <div class="letter-header">
-        <div class="letter-sender" contenteditable="true">
-          <span class="sender-name">${profile.name}</span>
-          ${profile.address ? profile.address + '<br>' : ''}
-          ${profile.city    ? profile.city    + '<br>' : ''}
-          ${profile.tel     ? profile.tel     + '<br>' : ''}
-          ${profile.email   || ''}
+  if(!apiKey)return alert('Clé API manquante → onglet Profil');
+  if(!profile.name)return alert('Nom manquant → onglet Profil');
+  if(!cvContent)return alert('CV manquant → onglet Profil');
+  if(!jobTitle)return alert('Titre du poste manquant → onglet Poste');
+  if(!jobDesc)return alert('Description du poste manquante');
+
+  document.getElementById('genBtn').disabled=true;
+  document.getElementById('statusBar').style.display='flex';
+  document.getElementById('statusTxt').textContent='Connexion à Groq...';
+  ['btnCopy','btnDocx','btnPDF'].forEach(id=>document.getElementById(id).classList.remove('show'));
+  document.getElementById('editHint').style.display='none';
+  document.getElementById('wcBadge').style.display='none';
+
+  // Afficher la structure de lettre avec zone streaming
+  const fs=document.getElementById('fsSlider').value;
+  document.getElementById('letterArea').innerHTML=`
+    <div class="a4-wrap" id="a4Letter" style="font-size:${fs}px">
+      <div class="ltr-header">
+        <div class="ltr-sender">
+          <span class="ltr-sender-name">${profile.name}</span>
+          ${profile.address?profile.address+'<br>':''}${profile.city?profile.city+'<br>':''}${profile.tel?profile.tel+'<br>':''}${profile.email||''}
         </div>
-        <div class="letter-recipient" contenteditable="true">
-          <span class="attn-label">À l'attention de :</span>
-          <span class="attn-service">${recipient || 'Service des Ressources Humaines'}</span>
-          <span class="attn-company">${employer}</span>
-          <span class="attn-city">${employerCity}</span>
+        <div class="ltr-recipient">
+          <span class="ltr-attn-label">À l'attention de :</span>
+          <span class="ltr-attn-service">${recipient||'Service des Ressources Humaines'}</span>
+          <span class="ltr-attn-company">${employer}</span>
+          <span class="ltr-attn-city">${empCity}</span>
         </div>
       </div>
-      <div class="letter-date" contenteditable="true">Fait à Paris, le ${getToday()}</div>
-      <div class="letter-object" contenteditable="true">Objet : Candidature – ${jobTitle}</div>
-      <div class="letter-salutation" contenteditable="true">Madame, Monsieur,</div>
-      <div class="letter-body" contenteditable="true">${parasHtml}</div>
-      <div class="letter-politesse" contenteditable="true">${politesse}</div>
-      <div class="letter-sign" contenteditable="true">${profile.name}</div>
+      <div class="ltr-date">Fait à Paris, le ${getToday()}</div>
+      <div class="ltr-object">Objet : Candidature – ${jobTitle}</div>
+      <div class="ltr-salutation">Madame, Monsieur,</div>
+      <div class="ltr-body" id="streamZone"><span class="stream-cursor"></span></div>
     </div>`;
+
+  let fullText='';
+  try{
+    document.getElementById('statusTxt').textContent='Génération en cours...';
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
+      body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:buildPrompt(cvContent,employer,jobTitle,jobDesc)}],temperature:.4,stream:true})
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||`HTTP ${res.status}`)}
+
+    const reader=res.body.getReader();
+    const dec=new TextDecoder();
+    let buf='';
+    const sz=document.getElementById('streamZone');
+
+    while(true){
+      const{done,value}=await reader.read();
+      if(done)break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split('\n');buf=lines.pop();
+      for(const line of lines){
+        if(!line.startsWith('data: '))continue;
+        const d=line.slice(6);
+        if(d==='[DONE]')continue;
+        try{
+          const j=JSON.parse(d);
+          const delta=j.choices?.[0]?.delta?.content||'';
+          fullText+=delta;
+          if(sz)sz.innerHTML=fullText.replace(/\n/g,'<br>')+'<span class="stream-cursor"></span>';
+        }catch{}
+      }
+    }
+
+    // Rendu final propre
+    renderLetter({profile,employer,recipient,empCity,jobTitle,jobDesc,body:fullText});
+    addToHist({profile,employer,recipient,empCity,jobTitle,jobDesc,body:fullText});
+    ['btnCopy','btnDocx','btnPDF'].forEach(id=>document.getElementById(id).classList.add('show'));
+    document.getElementById('editHint').style.display='block';
+    updateWC();
+
+  }catch(e){
+    document.getElementById('letterArea').innerHTML=`<div class="error-box">Erreur : ${e.message}</div>`;
+  }
+  document.getElementById('genBtn').disabled=false;
+  document.getElementById('statusBar').style.display='none';
 }
 
-/* ── Copie ───────────────────────────────── */
-function copyLetter() {
-  const el = document.getElementById('letterContent');
-  if (!el) return;
-  navigator.clipboard.writeText(el.innerText).then(() => {
-    const btn = document.getElementById('btnCopy');
-    btn.textContent = 'Copié !';
-    setTimeout(() => btn.textContent = 'Copier', 2000);
+/* ══ RENDER LETTER ══ */
+function renderLetter({profile,employer,recipient,empCity,jobTitle,jobDesc,body}){
+  const blocks=body.split(/\n\s*\n/).map(b=>b.trim()).filter(b=>b.length>0);
+  const politesse=blocks.length>1?blocks.pop():'Dans l\'attente de votre retour, je vous adresse mes cordiales salutations.';
+  const fs=document.getElementById('fsSlider').value;
+
+  const parasHtml=blocks.map((b,i)=>`
+    <div class="ltr-para" contenteditable="true" oninput="this.classList.add('edited');updateWC()" data-idx="${i}">
+      ${b.replace(/\n/g,' ')}
+      <button class="regen-btn" onclick="regenPara(this,${i})" title="Réécrire ce paragraphe">↻ Réécrire</button>
+    </div>`).join('');
+
+  document.getElementById('letterArea').innerHTML=`
+    <div class="a4-wrap" id="a4Letter" style="font-size:${fs}px">
+      <div class="ltr-header">
+        <div class="ltr-sender" contenteditable="true">
+          <span class="ltr-sender-name">${profile.name}</span>
+          ${profile.address?profile.address+'<br>':''}${profile.city?profile.city+'<br>':''}${profile.tel?profile.tel+'<br>':''}${profile.email||''}
+        </div>
+        <div class="ltr-recipient" contenteditable="true">
+          <span class="ltr-attn-label">À l'attention de :</span>
+          <span class="ltr-attn-service">${recipient||'Service des Ressources Humaines'}</span>
+          <span class="ltr-attn-company">${employer}</span>
+          <span class="ltr-attn-city">${empCity}</span>
+        </div>
+      </div>
+      <div class="ltr-date" contenteditable="true">Fait à Paris, le ${getToday()}</div>
+      <div class="ltr-object" contenteditable="true">Objet : Candidature – ${jobTitle}</div>
+      <div class="ltr-salutation" contenteditable="true">Madame, Monsieur,</div>
+      <div class="ltr-body">${parasHtml}</div>
+      <div class="ltr-politesse" contenteditable="true">${politesse}</div>
+      <div class="ltr-sign" contenteditable="true">${profile.name}</div>
+    </div>`;
+
+  // Store context for regen
+  window._letterCtx={profile,employer,jobTitle,jobDesc,cvContent:document.getElementById('cvText').value.trim()};
+  updateWC();
+}
+
+/* ══ REGEN PARAGRAPH ══ */
+async function regenPara(btn,idx){
+  const apiKey=getKey();if(!apiKey)return alert('Clé API manquante');
+  const ctx=window._letterCtx||{};
+  const para=btn.parentElement;
+  const originalText=para.innerText.replace('↻ Réécrire','').trim();
+
+  btn.textContent='⏳...';btn.disabled=true;
+
+  const prompt=`Réécris UNIQUEMENT ce paragraphe de lettre de motivation en gardant le même sens mais avec un style différent.
+Ton : ${document.getElementById('tone').value}.
+Retourne UNIQUEMENT le paragraphe réécrit, sans commentaire.
+
+Paragraphe original :
+"${originalText}"
+
+Contexte du poste : ${ctx.jobTitle||''} chez ${ctx.employer||''}.`;
+
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`},
+      body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:prompt}],temperature:.6})
+    });
+    const data=await res.json();
+    const newText=data.choices?.[0]?.message?.content?.trim()||'';
+    if(newText){
+      para.innerHTML=newText+`<button class="regen-btn" onclick="regenPara(this,${idx})" title="Réécrire ce paragraphe">↻ Réécrire</button>`;
+      para.classList.add('edited');
+      updateWC();
+    }
+  }catch(e){alert('Erreur : '+e.message)}
+  btn.textContent='↻ Réécrire';btn.disabled=false;
+}
+
+/* ══ FOCUS MODE ══ */
+function openFocus(){
+  const ltr=document.getElementById('a4Letter');
+  if(!ltr)return alert('Génère d\'abord une lettre.');
+  document.getElementById('focusContent').innerHTML=ltr.outerHTML.replace(/contenteditable="true"/g,'').replace(/class="regen-btn"[^>]*>[^<]*<\/button>/g,'');
+  document.getElementById('focusOverlay').classList.add('on');
+}
+function closeFocus(){document.getElementById('focusOverlay').classList.remove('on')}
+function closeFocusIfBg(e){if(e.target===document.getElementById('focusOverlay'))closeFocus()}
+
+/* ══ COPY ══ */
+function copyLetter(){
+  const el=document.getElementById('a4Letter');if(!el)return;
+  navigator.clipboard.writeText(el.innerText).then(()=>{
+    const b=document.getElementById('btnCopy');
+    b.textContent='✓ Copié';setTimeout(()=>b.textContent='Copier',2000);
   });
 }
 
-/* ── Init ────────────────────────────────── */
-(function init() {
-  const savedTheme  = localStorage.getItem('lm_theme')  || 'light';
-  const savedDesign = localStorage.getItem('lm_design') || 'A';
-  applyTheme(savedTheme);
-  setTheme(savedTheme);
-  setDesign(savedDesign);
-  loadKey();
-  loadProfile();
+/* ══ EXPORT WORD ══ */
+function exportDocx(){
+  const el=document.getElementById('a4Letter');if(!el)return;
+  const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>body{font-family:Arial,sans-serif;font-size:11pt;margin:2cm}p{margin-bottom:6pt;text-align:justify;line-height:1.5}</style></head><body>${el.innerHTML.replace(/<button[^>]*>.*?<\/button>/gs,'')}</body></html>`;
+  const blob=new Blob(['\ufeff'+html],{type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='lettre_motivation.doc';a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ══ DATE ══ */
+function getToday(){return new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})}
+
+/* ══ INIT ══ */
+(function(){
+  const t=localStorage.getItem('lm_theme')||'light';
+  const d=localStorage.getItem('lm_design')||'A';
+  applyTheme(t);setTheme(t);setDesign(d);
+  loadKey();loadProfile();
 })();
 </script>
 </body>
