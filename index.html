@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Générateur de Lettre de Motivation</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -17,14 +18,12 @@
     header {
       background: #fff;
       border-bottom: 1px solid #e5e5e0;
-      padding: 14px 24px;
+      padding: 12px 24px;
       display: flex;
       align-items: center;
       gap: 12px;
     }
     header h1 { font-size: 15px; font-weight: 500; }
-    header span { font-size: 12px; color: #888; }
-
     .badge {
       font-size: 11px;
       background: #e8f5e9;
@@ -35,31 +34,52 @@
       font-weight: 600;
     }
 
-    .layout {
-      display: flex;
-      height: calc(100vh - 53px);
-    }
+    .layout { display: flex; height: calc(100vh - 49px); }
 
+    /* ── PANNEAU GAUCHE ── */
     .panel-left {
-      width: 340px;
+      width: 350px;
       flex-shrink: 0;
       background: #fff;
       border-right: 1px solid #e5e5e0;
-      padding: 20px;
-      overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 14px;
     }
 
-    .section-sep {
-      border: none;
-      border-top: 1px solid #e5e5e0;
-      margin: 2px 0;
+    /* Onglets */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e5e0;
+      flex-shrink: 0;
     }
+    .tab {
+      flex: 1;
+      padding: 11px 0;
+      font-size: 13px;
+      font-weight: 500;
+      color: #aaa;
+      background: none;
+      border: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s;
+    }
+    .tab:hover { color: #555; }
+    .tab.active { color: #1a1a18; border-bottom-color: #1a1a18; }
+
+    .tab-content {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      flex-direction: column;
+      gap: 13px;
+    }
+    .tab-content.active { display: flex; }
+
+    .section-sep { border: none; border-top: 1px solid #e5e5e0; margin: 2px 0; }
 
     .field-group { display: flex; flex-direction: column; gap: 5px; }
-
     .field-label {
       font-size: 11px;
       font-weight: 600;
@@ -68,7 +88,7 @@
       letter-spacing: 0.05em;
     }
 
-    input, textarea {
+    input, textarea, select {
       width: 100%;
       font-family: inherit;
       font-size: 13px;
@@ -83,9 +103,22 @@
     input:focus, textarea:focus { border-color: #999; background: #fff; }
     textarea { resize: vertical; line-height: 1.5; }
 
-    /* Champ clé API */
-    .api-key-row { display: flex; gap: 6px; align-items: center; }
+    /* Clé API */
+    .api-key-row { display: flex; gap: 6px; }
     .api-key-row input { flex: 1; font-family: monospace; font-size: 12px; }
+    .btn-sm {
+      padding: 0 10px;
+      height: 36px;
+      background: #f0f0ee;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #555;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .btn-sm:hover { background: #e5e5e0; }
 
     .key-saved-badge {
       display: none;
@@ -96,29 +129,30 @@
       border-radius: 20px;
       padding: 2px 8px;
       font-weight: 600;
-      white-space: nowrap;
     }
+    .key-hint { font-size: 11px; color: #aaa; margin-top: 2px; }
 
-    .btn-key-action {
-      padding: 0 10px;
-      height: 36px;
-      background: #f0f0ee;
-      border: 1px solid #ddd;
+    /* Upload CV */
+    .cv-upload-zone {
+      border: 1.5px dashed #ddd;
       border-radius: 8px;
+      padding: 14px;
+      text-align: center;
       cursor: pointer;
       font-size: 12px;
-      color: #555;
-      white-space: nowrap;
-      font-family: inherit;
-    }
-    .btn-key-action:hover { background: #e5e5e0; }
-
-    .key-hint {
-      font-size: 11px;
       color: #aaa;
-      margin-top: 2px;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
     }
+    .cv-upload-zone:hover { border-color: #999; background: #fafaf8; color: #666; }
+    .cv-upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+      border: none; background: none; padding: 0;
+    }
+    .cv-upload-zone.loaded { border-color: #2e7d32; color: #2e7d32; background: #f1faf3; }
+    .cv-filename { font-size: 12px; color: #2e7d32; margin-top: 4px; }
 
+    /* Bouton générer */
     .btn-generate {
       width: 100%;
       padding: 11px;
@@ -131,6 +165,7 @@
       border-radius: 8px;
       cursor: pointer;
       margin-top: 4px;
+      flex-shrink: 0;
     }
     .btn-generate:hover { background: #333; }
     .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -141,7 +176,8 @@
       gap: 8px;
       font-size: 12px;
       color: #888;
-      padding-top: 4px;
+      padding: 6px 18px 10px;
+      flex-shrink: 0;
     }
     .spinner {
       width: 14px; height: 14px;
@@ -153,6 +189,12 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .gen-row {
+      padding: 0 18px 6px;
+      flex-shrink: 0;
+    }
+
+    /* ── PANNEAU DROIT ── */
     .panel-right {
       flex: 1;
       padding: 24px 32px;
@@ -166,11 +208,8 @@
       align-items: center;
       margin-bottom: 16px;
     }
-
     .panel-right-title { font-size: 13px; font-weight: 500; color: #888; }
-
     .top-actions { display: flex; gap: 8px; }
-
     .btn-action {
       display: none;
       padding: 6px 14px;
@@ -184,6 +223,7 @@
     }
     .btn-action:hover { background: #f0f0ee; }
 
+    /* ── LETTRE ── */
     .letter-wrapper {
       background: #fff;
       border: 1px solid #e5e5e0;
@@ -195,53 +235,26 @@
       max-width: 780px;
       margin: 0 auto;
     }
-
-    .letter-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 28px;
-    }
-
+    .letter-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
     .letter-sender { font-size: 13px; line-height: 1.7; }
     .letter-sender strong { font-size: 14px; font-weight: 700; display: block; margin-bottom: 2px; }
-
     .letter-recipient { text-align: right; font-size: 13px; line-height: 1.7; }
     .letter-recipient .attn { font-style: italic; color: #666; font-size: 12px; display: block; }
     .letter-recipient strong { font-size: 14px; font-weight: 700; display: block; margin-top: 2px; }
-
     .letter-date { text-align: right; font-size: 12px; color: #888; margin-bottom: 20px; }
-
-    .letter-object {
-      font-weight: 700;
-      font-size: 13px;
-      margin-bottom: 20px;
-      border-left: 3px solid #1a1a1a;
-      padding-left: 8px;
-    }
-
+    .letter-object { font-weight: 700; font-size: 13px; margin-bottom: 20px; border-left: 3px solid #1a1a1a; padding-left: 8px; }
     .letter-body p { margin-bottom: 14px; text-align: justify; }
     .letter-sign { margin-top: 28px; text-align: right; font-weight: 700; }
 
     .letter-placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      min-height: 400px;
-      color: #aaa;
-      font-size: 13px;
-      text-align: center;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 10px; min-height: 400px;
+      color: #aaa; font-size: 13px; text-align: center;
     }
-
     .error-msg {
-      color: #c0392b;
-      background: #fdf0ef;
-      border: 1px solid #f5c6c2;
-      border-radius: 8px;
-      padding: 12px 16px;
-      font-size: 13px;
+      color: #c0392b; background: #fdf0ef;
+      border: 1px solid #f5c6c2; border-radius: 8px;
+      padding: 12px 16px; font-size: 13px;
     }
 
     @media print {
@@ -251,7 +264,6 @@
       .panel-right { padding: 0; background: white; }
       .letter-wrapper { border: none; border-radius: 0; padding: 20mm; max-width: 100%; }
     }
-
     @page { size: A4; margin: 0; }
   </style>
 </head>
@@ -259,70 +271,115 @@
 
 <header>
   <h1>Générateur de Lettre de Motivation</h1>
-  <span>Ludivin DEKPEA</span>
   <span class="badge">Groq / Llama 3 – Gratuit</span>
 </header>
 
 <div class="layout">
-
   <div class="panel-left">
 
-    <!-- Clé API avec sauvegarde -->
-    <div class="field-group">
-      <label class="field-label">
-        Clé API Groq
-        <span class="key-saved-badge" id="keySavedBadge">🔒 Enregistrée</span>
-      </label>
+    <!-- Onglets -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('profil')">👤 Profil</button>
+      <button class="tab" onclick="switchTab('poste')">💼 Poste</button>
+    </div>
 
-      <!-- Vue "clé enregistrée" -->
-      <div id="keySavedView" style="display:none; gap:6px; align-items:center;">
-        <input type="password" value="••••••••••••••••••••••••" readonly
-               style="flex:1; color:#aaa; background:#f5f5f3; cursor:default;" />
-        <button class="btn-key-action" onclick="resetKey()">Changer</button>
+    <!-- ── ONGLET PROFIL ── -->
+    <div class="tab-content active" id="tab-profil">
+
+      <!-- Clé API -->
+      <div class="field-group">
+        <label class="field-label">
+          Clé API Groq
+          <span class="key-saved-badge" id="keySavedBadge">🔒 Enregistrée</span>
+        </label>
+        <div id="keySavedView" style="display:none; gap:6px; align-items:center;">
+          <input type="password" value="••••••••••••••••••••••" readonly style="flex:1;color:#aaa;background:#f5f5f3;cursor:default;"/>
+          <button class="btn-sm" onclick="resetKey()">Changer</button>
+        </div>
+        <div id="keyInputView" class="api-key-row">
+          <input type="password" id="apiKey" placeholder="gsk_..."/>
+          <button class="btn-sm" onclick="saveKey()">💾 Sauver</button>
+        </div>
+        <span class="key-hint" id="keyHint">Saisis ta clé puis clique "Sauver"</span>
       </div>
 
-      <!-- Vue "saisie de clé" -->
-      <div id="keyInputView" class="api-key-row">
-        <input type="password" id="apiKey" placeholder="gsk_..." />
-        <button class="btn-key-action" onclick="saveKey()">💾 Sauver</button>
+      <hr class="section-sep"/>
+
+      <!-- Infos personnelles -->
+      <div class="field-group">
+        <label class="field-label">Prénom Nom</label>
+        <input type="text" id="userName" placeholder="Ex: Jean Dupont"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Adresse</label>
+        <input type="text" id="userAddress" placeholder="Ex: 12 rue de la Paix"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Ville & Code postal</label>
+        <input type="text" id="userCity" placeholder="Ex: 75001 Paris"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Téléphone</label>
+        <input type="tel" id="userTel" placeholder="Ex: +33 6 00 00 00 00"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Email</label>
+        <input type="email" id="userEmail" placeholder="Ex: prenom.nom@email.com"/>
       </div>
 
-      <span class="key-hint" id="keyHint">Saisie ta clé puis clique "Sauver"</span>
+      <hr class="section-sep"/>
+
+      <!-- CV Upload -->
+      <div class="field-group">
+        <label class="field-label">CV (PDF)</label>
+        <div class="cv-upload-zone" id="cvZone">
+          <input type="file" id="cvFile" accept=".pdf" onchange="loadCV(event)"/>
+          <span id="cvZoneText">📄 Clique pour uploader ton CV (PDF)</span>
+        </div>
+        <div class="cv-filename" id="cvFilename" style="display:none"></div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Ou colle le texte de ton CV</label>
+        <textarea id="cvText" rows="6" placeholder="Colle ici le contenu de ton CV si tu n'as pas de PDF..."></textarea>
+      </div>
+
+      <button class="btn-sm" style="width:100%;margin-top:2px" onclick="saveProfile()">💾 Sauvegarder le profil</button>
+      <span class="key-hint" id="profileHint"></span>
+
     </div>
 
-    <hr class="section-sep">
+    <!-- ── ONGLET POSTE ── -->
+    <div class="tab-content" id="tab-poste">
 
-    <div class="field-group">
-      <label class="field-label">Entreprise</label>
-      <input type="text" id="employer" placeholder="Ex: Safran Landing Systems" />
+      <div class="field-group">
+        <label class="field-label">Entreprise</label>
+        <input type="text" id="employer" placeholder="Ex: Safran Landing Systems"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Service / Destinataire</label>
+        <input type="text" id="recipient" placeholder="Ex: Service des Ressources Humaines"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Ville de l'employeur</label>
+        <input type="text" id="employerCity" placeholder="Ex: Vélizy-Villacoublay"/>
+      </div>
+      <hr class="section-sep"/>
+      <div class="field-group">
+        <label class="field-label">Titre du poste</label>
+        <input type="text" id="jobTitle" placeholder="Ex: Alternant Ingénieur Sécurité..."/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Description du poste</label>
+        <textarea id="jobDesc" rows="10" placeholder="Collez ici la description complète du poste..."></textarea>
+      </div>
+
     </div>
 
-    <div class="field-group">
-      <label class="field-label">Service / Destinataire</label>
-      <input type="text" id="recipient" placeholder="Ex: Service des Ressources Humaines" />
+    <!-- Bouton générer (toujours visible) -->
+    <div class="gen-row">
+      <button class="btn-generate" id="genBtn" onclick="generate()">Générer la lettre →</button>
     </div>
-
-    <div class="field-group">
-      <label class="field-label">Ville de l'employeur</label>
-      <input type="text" id="employerCity" placeholder="Ex: Vélizy-Villacoublay" />
-    </div>
-
-    <hr class="section-sep">
-
-    <div class="field-group">
-      <label class="field-label">Titre du poste</label>
-      <input type="text" id="jobTitle" placeholder="Ex: Alternant Ingénieur Sécurité..." />
-    </div>
-
-    <div class="field-group">
-      <label class="field-label">Description du poste</label>
-      <textarea id="jobDesc" rows="9" placeholder="Collez ici la description complète du poste..."></textarea>
-    </div>
-
-    <button class="btn-generate" id="genBtn" onclick="generate()">
-      Générer la lettre →
-    </button>
-
     <div class="status-bar" id="statusBar">
       <div class="spinner"></div>
       <span>Génération en cours...</span>
@@ -330,6 +387,7 @@
 
   </div>
 
+  <!-- PANNEAU DROIT -->
   <div class="panel-right">
     <div class="panel-right-header">
       <span class="panel-right-title">Aperçu de la lettre</span>
@@ -341,24 +399,28 @@
     <div id="letterArea">
       <div class="letter-placeholder">
         <span style="font-size:32px">✉</span>
-        <span>Remplissez le formulaire et cliquez sur<br><strong>"Générer la lettre"</strong></span>
+        <span>Remplis ton profil et le poste,<br>puis clique sur <strong>"Générer la lettre"</strong></span>
       </div>
     </div>
   </div>
-
 </div>
 
 <script>
-  const SENDER = {
-    name:    "Ludivin DEKPEA",
-    address: "3 rue Jacques Duclos",
-    city:    "78280 Guyancourt",
-    tel:     "+33 6 12 61 87 22",
-    email:   "dekpeakouapeuludivin@gmail.com"
-  };
+  // PDF.js worker
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  // ── Gestion clé API ──────────────────────────────
+  let cvExtractedText = "";
 
+  // ── Onglets ──────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`[onclick="switchTab('${name}')"]`).classList.add('active');
+    document.getElementById(`tab-${name}`).classList.add('active');
+  }
+
+  // ── Clé API ──────────────────────────────────────
   function loadKey() {
     const saved = localStorage.getItem("groq_api_key");
     if (saved) {
@@ -368,7 +430,6 @@
       document.getElementById("keyHint").textContent = "Clé chargée automatiquement 🔒";
     }
   }
-
   function saveKey() {
     const key = document.getElementById("apiKey").value.trim();
     if (!key.startsWith("gsk_")) return alert("Clé invalide. Elle doit commencer par gsk_");
@@ -379,7 +440,6 @@
     document.getElementById("keySavedBadge").style.display = "inline";
     document.getElementById("keyHint").textContent = "Clé enregistrée 🔒";
   }
-
   function resetKey() {
     if (!confirm("Supprimer la clé enregistrée ?")) return;
     localStorage.removeItem("groq_api_key");
@@ -388,73 +448,127 @@
     document.getElementById("keySavedBadge").style.display = "none";
     document.getElementById("keyHint").textContent = "Saisis ta clé puis clique \"Sauver\"";
   }
-
   function getKey() {
     return localStorage.getItem("groq_api_key") || document.getElementById("apiKey").value.trim();
   }
 
-  // ── Utilitaires ──────────────────────────────────
+  // ── Profil ───────────────────────────────────────
+  function saveProfile() {
+    const profile = {
+      name:    document.getElementById("userName").value.trim(),
+      address: document.getElementById("userAddress").value.trim(),
+      city:    document.getElementById("userCity").value.trim(),
+      tel:     document.getElementById("userTel").value.trim(),
+      email:   document.getElementById("userEmail").value.trim(),
+      cvText:  document.getElementById("cvText").value.trim()
+    };
+    localStorage.setItem("user_profile", JSON.stringify(profile));
+    document.getElementById("profileHint").textContent = "✅ Profil sauvegardé";
+    setTimeout(() => document.getElementById("profileHint").textContent = "", 2500);
+  }
 
-  function getToday() {
-    return new Date().toLocaleDateString("fr-FR", {
-      day: "numeric", month: "long", year: "numeric"
-    });
+  function loadProfile() {
+    const saved = localStorage.getItem("user_profile");
+    if (!saved) return;
+    const p = JSON.parse(saved);
+    document.getElementById("userName").value    = p.name    || "";
+    document.getElementById("userAddress").value = p.address || "";
+    document.getElementById("userCity").value    = p.city    || "";
+    document.getElementById("userTel").value     = p.tel     || "";
+    document.getElementById("userEmail").value   = p.email   || "";
+    document.getElementById("cvText").value      = p.cvText  || "";
+    if (p.cvText) cvExtractedText = p.cvText;
+  }
+
+  function getProfile() {
+    return {
+      name:    document.getElementById("userName").value.trim(),
+      address: document.getElementById("userAddress").value.trim(),
+      city:    document.getElementById("userCity").value.trim(),
+      tel:     document.getElementById("userTel").value.trim(),
+      email:   document.getElementById("userEmail").value.trim()
+    };
+  }
+
+  // ── CV Upload ────────────────────────────────────
+  async function loadCV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    document.getElementById("cvZoneText").textContent = "⏳ Lecture du CV...";
+    document.getElementById("cvZone").classList.add("loaded");
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        fullText += content.items.map(item => item.str).join(" ") + "\n";
+      }
+      cvExtractedText = fullText;
+      document.getElementById("cvText").value = fullText;
+      document.getElementById("cvZoneText").textContent = "✅ " + file.name;
+      document.getElementById("cvFilename").style.display = "block";
+      document.getElementById("cvFilename").textContent = file.name + " — " + pdf.numPages + " page(s) lue(s)";
+    } catch(e) {
+      document.getElementById("cvZoneText").textContent = "❌ Erreur lecture PDF";
+      document.getElementById("cvZone").classList.remove("loaded");
+    }
   }
 
   // ── Génération ───────────────────────────────────
+  function getToday() {
+    return new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  }
 
   async function generate() {
     const apiKey       = getKey();
+    const profile      = getProfile();
+    const cvContent    = document.getElementById("cvText").value.trim();
     const employer     = document.getElementById("employer").value.trim();
     const recipient    = document.getElementById("recipient").value.trim();
     const employerCity = document.getElementById("employerCity").value.trim();
     const jobTitle     = document.getElementById("jobTitle").value.trim();
     const jobDesc      = document.getElementById("jobDesc").value.trim();
 
-    if (!apiKey)   return alert("Aucune clé API enregistrée. Saisis ta clé Groq.");
-    if (!jobTitle) return alert("Renseigne le titre du poste.");
-    if (!jobDesc)  return alert("Renseigne la description du poste.");
+    if (!apiKey)        return alert("Aucune clé API enregistrée. Va dans l'onglet Profil.");
+    if (!profile.name)  return alert("Renseigne ton nom dans l'onglet Profil.");
+    if (!cvContent)     return alert("Ajoute ton CV ou colle ton expérience dans l'onglet Profil.");
+    if (!jobTitle)      return alert("Renseigne le titre du poste dans l'onglet Poste.");
+    if (!jobDesc)       return alert("Renseigne la description du poste dans l'onglet Poste.");
 
     document.getElementById("genBtn").disabled = true;
     document.getElementById("statusBar").style.display = "flex";
     document.getElementById("copyBtn").style.display = "none";
     document.getElementById("printBtn").style.display = "none";
 
-    const prompt = `Tu es un expert en rédaction de lettres de motivation françaises professionnelles pour des alternances en cybersécurité / systèmes & réseaux.
+    const prompt = `Tu es un expert en rédaction de lettres de motivation françaises professionnelles.
 
-Voici le profil du candidat :
-- Nom : Ludivin DEKPEA
-- Formation : Bachelor AIS & SecOps à l'IPSSI, poursuite en Master cybersécurité (sept. 2026)
-- Alternance actuelle : Webnet - administrateur systèmes et réseaux
-  * Administration quotidienne Linux (Debian, RedHat) et Windows Server
-  * Automatisation via Ansible et Terraform (pipeline update Linux/Windows vers Splunk)
-  * Monitoring SOC : Wazuh, Splunk, qualification d'incidents
-  * Migrations serveurs (Debian 10 vers 12), Nginx, PHP-FPM, Elasticsearch
-  * Déploiement Odoo 17, IIS, SQL Server, configurations Fortigate
-  * Scanning VLAN, développement d'outils de reporting réseau
-- Alternance précédente : Qualitair & Sea (DIMOTRANS Group) - Windows Server, Active Directory, Cisco, VMware, Proxmox
-- SOC Homelab personnel : Proxmox + pfSense + Snort + Wazuh + TheHive (docker-compose)
-- Compétences : Ansible, Terraform, Bash, Python, IaC, SIEM, IDS/IPS, virtualisation
+Voici le profil du candidat extrait de son CV :
+---
+${cvContent.slice(0, 3000)}
+---
 
 Poste visé : ${jobTitle}
 Employeur : ${employer || "l'entreprise"}
 Description du poste :
-${jobDesc}
+${jobDesc.slice(0, 2000)}
 
 Rédige une lettre de motivation professionnelle en français, structurée en 4 paragraphes :
 1. Accroche + contexte candidature (lien formation/poste)
-2. Expérience technique concrète en lien avec les missions du poste
+2. Expérience technique concrète en lien avec les missions du poste (basée sur le CV)
 3. Motivation spécifique pour cet employeur / ce secteur
 4. Conclusion et disponibilité
 
 Contraintes :
-- Ton professionnel mais direct, sans tournures creuses
-- Chaque paragraphe cite des éléments concrets du profil ET de l'offre
-- Pas de formule générique
+- Ton professionnel mais direct, sans tournures creuses ni formules génériques
+- Chaque paragraphe doit citer des éléments concrets du CV ET de l'offre
 - 4 paragraphes substantiels, pas plus
-- Ne pas inclure la date, l'objet, ni les coordonnées
+- Ne pas inclure la date, l'objet ni les coordonnées (gérés séparément)
 - Terminer uniquement par la formule de politesse finale
-- Retourner UNIQUEMENT le corps de la lettre, sans titre ni objet.`;
+- Retourner UNIQUEMENT le corps de la lettre (4 paragraphes + formule), sans titre ni objet.`;
 
     try {
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -478,7 +592,7 @@ Contraintes :
       const text = data.choices?.[0]?.message?.content || "";
       if (!text) throw new Error("Réponse vide de Groq.");
 
-      renderLetter({ employer, recipient, employerCity, jobTitle, body: text });
+      renderLetter({ profile, employer, recipient, employerCity, jobTitle, body: text });
       document.getElementById("copyBtn").style.display = "block";
       document.getElementById("printBtn").style.display = "block";
 
@@ -492,8 +606,7 @@ Contraintes :
   }
 
   // ── Rendu lettre ─────────────────────────────────
-
-  function renderLetter({ employer, recipient, employerCity, jobTitle, body }) {
+  function renderLetter({ profile, employer, recipient, employerCity, jobTitle, body }) {
     const paras = body.split("\n").filter(p => p.trim().length > 0);
     const parasHtml = paras.map(p => `<p>${p.trim()}</p>`).join("");
 
@@ -501,11 +614,11 @@ Contraintes :
       <div class="letter-wrapper" id="letterContent">
         <div class="letter-header">
           <div class="letter-sender">
-            <strong>${SENDER.name}</strong>
-            ${SENDER.address}<br>
-            ${SENDER.city}<br>
-            ${SENDER.tel}<br>
-            ${SENDER.email}
+            <strong>${profile.name}</strong>
+            ${profile.address ? profile.address + "<br>" : ""}
+            ${profile.city ? profile.city + "<br>" : ""}
+            ${profile.tel ? profile.tel + "<br>" : ""}
+            ${profile.email || ""}
           </div>
           <div class="letter-recipient">
             <span class="attn">À l'attention de :</span>
@@ -520,7 +633,7 @@ Contraintes :
           <p>Madame, Monsieur,</p>
           ${parasHtml}
         </div>
-        <div class="letter-sign">${SENDER.name}</div>
+        <div class="letter-sign">${profile.name}</div>
       </div>`;
   }
 
@@ -536,6 +649,7 @@ Contraintes :
 
   // ── Init ─────────────────────────────────────────
   loadKey();
+  loadProfile();
 </script>
 
 </body>
