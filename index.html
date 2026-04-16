@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Générateur de Lettre de Motivation</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      background: #f5f5f3;
+      color: #1a1a18;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e5e5e0;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 15px; font-weight: 500; }
+    header span { font-size: 12px; color: #888; }
+
+    .badge {
+      font-size: 11px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-weight: 600;
+    }
+
+    .layout {
+      display: flex;
+      height: calc(100vh - 53px);
+    }
+
+    .panel-left {
+      width: 340px;
+      flex-shrink: 0;
+      background: #fff;
+      border-right: 1px solid #e5e5e0;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .section-sep {
+      border: none;
+      border-top: 1px solid #e5e5e0;
+      margin: 2px 0;
+    }
+
+    .field-group { display: flex; flex-direction: column; gap: 5px; }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, textarea {
+      width: 100%;
+      font-family: inherit;
+      font-size: 13px;
+      color: #1a1a18;
+      background: #fafaf8;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, textarea:focus { border-color: #999; background: #fff; }
+    textarea { resize: vertical; line-height: 1.5; }
+
+    .api-key-row { display: flex; gap: 6px; }
+    .api-key-row input { flex: 1; font-family: monospace; font-size: 12px; }
+    .btn-toggle-key {
+      padding: 0 10px;
+      background: #f0f0ee;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .btn-generate {
+      width: 100%;
+      padding: 11px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: #1a1a18;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .btn-generate:hover { background: #333; }
+    .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .status-bar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #888;
+      padding-top: 4px;
+    }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid #ddd;
+      border-top-color: #888;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .panel-right {
+      flex: 1;
+      padding: 24px 32px;
+      overflow-y: auto;
+      background: #f5f5f3;
+    }
+
+    .panel-right-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .panel-right-title { font-size: 13px; font-weight: 500; color: #888; }
+
+    .top-actions { display: flex; gap: 8px; }
+
+    .btn-action {
+      display: none;
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 12px;
+      color: #555;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn-action:hover { background: #f0f0ee; }
+
+    .letter-wrapper {
+      background: #fff;
+      border: 1px solid #e5e5e0;
+      border-radius: 12px;
+      padding: 40px 44px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #1a1a18;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    .letter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 28px;
+    }
+
+    .letter-sender { font-size: 13px; line-height: 1.7; }
+    .letter-sender strong { font-size: 14px; font-weight: 700; display: block; margin-bottom: 2px; }
+
+    .letter-recipient { text-align: right; font-size: 13px; line-height: 1.7; }
+    .letter-recipient .attn { font-style: italic; color: #666; font-size: 12px; display: block; }
+    .letter-recipient strong { font-size: 14px; font-weight: 700; display: block; margin-top: 2px; }
+
+    .letter-date { text-align: right; font-size: 12px; color: #888; margin-bottom: 20px; }
+
+    .letter-object {
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 20px;
+      border-left: 3px solid #1a1a1a;
+      padding-left: 8px;
+    }
+
+    .letter-body p { margin-bottom: 14px; text-align: justify; }
+    .letter-sign { margin-top: 28px; text-align: right; font-weight: 700; }
+
+    .letter-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 400px;
+      color: #aaa;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .error-msg {
+      color: #c0392b;
+      background: #fdf0ef;
+      border: 1px solid #f5c6c2;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+    }
+
+    @media print {
+      body { background: white; }
+      header, .panel-left, .panel-right-header { display: none !important; }
+      .layout { height: auto; }
+      .panel-right { padding: 0; background: white; }
+      .letter-wrapper {
+        border: none; border-radius: 0;
+        padding: 20mm; max-width: 100%;
+      }
+    }
+
+    @page { size: A4; margin: 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Générateur de Lettre de Motivation</h1>
+  <span>Ludivin DEKPEA</span>
+  <span class="badge">Groq / Llama 3 – Gratuit</span>
+</header>
+
+<div class="layout">
+
+  <div class="panel-left">
+
+    <div class="field-group">
+      <label class="field-label">Clé API Groq</label>
+      <div class="api-key-row">
+        <input type="password" id="apiKey" placeholder="gsk_..." />
+        <button class="btn-toggle-key" onclick="toggleKey()">👁</button>
+      </div>
+    </div>
+
+    <hr class="section-sep">
+
+    <div class="field-group">
+      <label class="field-label">Entreprise</label>
+      <input type="text" id="employer" placeholder="Ex: Safran Landing Systems" />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Service / Destinataire</label>
+      <input type="text" id="recipient" placeholder="Ex: Service des Ressources Humaines" />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Ville de l'employeur</label>
+      <input type="text" id="employerCity" placeholder="Ex: Vélizy-Villacoublay" />
+    </div>
+
+    <hr class="section-sep">
+
+    <div class="field-group">
+      <label class="field-label">Titre du poste</label>
+      <input type="text" id="jobTitle" placeholder="Ex: Alternant Ingénieur Sécurité..." />
+    </div>
+
+    <div class="field-group">
+      <label class="field-label">Description du poste</label>
+      <textarea id="jobDesc" rows="9" placeholder="Collez ici la description complète du poste..."></textarea>
+    </div>
+
+    <button class="btn-generate" id="genBtn" onclick="generate()">
+      Générer la lettre →
+    </button>
+
+    <div class="status-bar" id="statusBar">
+      <div class="spinner"></div>
+      <span>Génération en cours...</span>
+    </div>
+
+  </div>
+
+  <div class="panel-right">
+    <div class="panel-right-header">
+      <span class="panel-right-title">Aperçu de la lettre</span>
+      <div class="top-actions">
+        <button class="btn-action" id="copyBtn" onclick="copyLetter()">Copier</button>
+        <button class="btn-action" id="printBtn" onclick="window.print()">⬇ Enregistrer PDF</button>
+      </div>
+    </div>
+    <div id="letterArea">
+      <div class="letter-placeholder">
+        <span style="font-size:32px">✉</span>
+        <span>Remplissez le formulaire et cliquez sur<br><strong>"Générer la lettre"</strong></span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SENDER = {
+    name:    "Ludivin DEKPEA",
+    address: "3 rue Jacques Duclos",
+    city:    "78280 Guyancourt",
+    tel:     "+33 6 12 61 87 22",
+    email:   "dekpeakouapeuludivin@gmail.com"
+  };
+
+  function toggleKey() {
+    const i = document.getElementById("apiKey");
+    i.type = i.type === "password" ? "text" : "password";
+  }
+
+  function getToday() {
+    return new Date().toLocaleDateString("fr-FR", {
+      day: "numeric", month: "long", year: "numeric"
+    });
+  }
+
+  async function generate() {
+    const apiKey       = document.getElementById("apiKey").value.trim();
+    const employer     = document.getElementById("employer").value.trim();
+    const recipient    = document.getElementById("recipient").value.trim();
+    const employerCity = document.getElementById("employerCity").value.trim();
+    const jobTitle     = document.getElementById("jobTitle").value.trim();
+    const jobDesc      = document.getElementById("jobDesc").value.trim();
+
+    if (!apiKey)   return alert("Entre ta clé API Groq (gsk_...).");
+    if (!jobTitle) return alert("Renseigne le titre du poste.");
+    if (!jobDesc)  return alert("Renseigne la description du poste.");
+
+    document.getElementById("genBtn").disabled = true;
+    document.getElementById("statusBar").style.display = "flex";
+    document.getElementById("copyBtn").style.display = "none";
+    document.getElementById("printBtn").style.display = "none";
+
+    const prompt = `Tu es un expert en rédaction de lettres de motivation françaises professionnelles pour des alternances en cybersécurité / systèmes & réseaux.
+
+Voici le profil du candidat :
+- Nom : Ludivin DEKPEA
+- Formation : Bachelor AIS & SecOps à l'IPSSI, poursuite en Master cybersécurité (sept. 2026)
+- Alternance actuelle : Webnet - administrateur systèmes et réseaux
+  * Administration quotidienne Linux (Debian, RedHat) et Windows Server
+  * Automatisation via Ansible et Terraform (pipeline update Linux/Windows vers Splunk)
+  * Monitoring SOC : Wazuh, Splunk, qualification d'incidents
+  * Migrations serveurs (Debian 10 vers 12), Nginx, PHP-FPM, Elasticsearch
+  * Déploiement Odoo 17, IIS, SQL Server, configurations Fortigate
+  * Scanning VLAN, développement d'outils de reporting réseau
+- Alternance précédente : Qualitair & Sea (DIMOTRANS Group) - Windows Server, Active Directory, Cisco, VMware, Proxmox
+- SOC Homelab personnel : Proxmox + pfSense + Snort + Wazuh + TheHive (docker-compose)
+- Compétences : Ansible, Terraform, Bash, Python, IaC, SIEM, IDS/IPS, virtualisation
+
+Poste visé : ${jobTitle}
+Employeur : ${employer || "l'entreprise"}
+Description du poste :
+${jobDesc}
+
+Rédige une lettre de motivation professionnelle en français, structurée en 4 paragraphes :
+1. Accroche + contexte candidature (lien formation/poste)
+2. Expérience technique concrète en lien avec les missions du poste
+3. Motivation spécifique pour cet employeur / ce secteur
+4. Conclusion et disponibilité
+
+Contraintes :
+- Ton professionnel mais direct, sans tournures creuses
+- Chaque paragraphe cite des éléments concrets du profil ET de l'offre
+- Pas de formule générique ("passionné par l'informatique depuis tout petit")
+- 4 paragraphes substantiels, pas plus
+- Ne pas inclure la date, l'objet, ni les coordonnées (gérés séparément)
+- Terminer uniquement par la formule de politesse finale
+- Retourner UNIQUEMENT le corps de la lettre (4 paragraphes + formule), sans titre ni objet.`;
+
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || `Erreur HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content || "";
+      if (!text) throw new Error("Réponse vide de Groq.");
+
+      renderLetter({ employer, recipient, employerCity, jobTitle, body: text });
+      document.getElementById("copyBtn").style.display = "block";
+      document.getElementById("printBtn").style.display = "block";
+
+    } catch(e) {
+      document.getElementById("letterArea").innerHTML =
+        `<div class="error-msg">Erreur : ${e.message}</div>`;
+    }
+
+    document.getElementById("genBtn").disabled = false;
+    document.getElementById("statusBar").style.display = "none";
+  }
+
+  function renderLetter({ employer, recipient, employerCity, jobTitle, body }) {
+    const paras = body.split("\n").filter(p => p.trim().length > 0);
+    const parasHtml = paras.map(p => `<p>${p.trim()}</p>`).join("");
+
+    document.getElementById("letterArea").innerHTML = `
+      <div class="letter-wrapper" id="letterContent">
+        <div class="letter-header">
+          <div class="letter-sender">
+            <strong>${SENDER.name}</strong>
+            ${SENDER.address}<br>
+            ${SENDER.city}<br>
+            ${SENDER.tel}<br>
+            ${SENDER.email}
+          </div>
+          <div class="letter-recipient">
+            <span class="attn">À l'attention de :</span>
+            <span>${recipient || "Service des Ressources Humaines"}</span>
+            <strong>${employer}</strong>
+            <span>${employerCity}</span>
+          </div>
+        </div>
+        <div class="letter-date">Fait à Paris, le ${getToday()}</div>
+        <div class="letter-object">Objet : Candidature – ${jobTitle}</div>
+        <div class="letter-body">
+          <p>Madame, Monsieur,</p>
+          ${parasHtml}
+        </div>
+        <div class="letter-sign">${SENDER.name}</div>
+      </div>`;
+  }
+
+  function copyLetter() {
+    const el = document.getElementById("letterContent");
+    if (!el) return;
+    navigator.clipboard.writeText(el.innerText).then(() => {
+      const btn = document.getElementById("copyBtn");
+      btn.textContent = "Copié !";
+      setTimeout(() => btn.textContent = "Copier", 2000);
+    });
+  }
+</script>
+
+</body>
+</html>
