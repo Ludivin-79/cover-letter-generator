@@ -83,16 +83,40 @@
     input:focus, textarea:focus { border-color: #999; background: #fff; }
     textarea { resize: vertical; line-height: 1.5; }
 
-    .api-key-row { display: flex; gap: 6px; }
+    /* Champ clé API */
+    .api-key-row { display: flex; gap: 6px; align-items: center; }
     .api-key-row input { flex: 1; font-family: monospace; font-size: 12px; }
-    .btn-toggle-key {
+
+    .key-saved-badge {
+      display: none;
+      font-size: 11px;
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .btn-key-action {
       padding: 0 10px;
+      height: 36px;
       background: #f0f0ee;
       border: 1px solid #ddd;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       color: #555;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .btn-key-action:hover { background: #e5e5e0; }
+
+    .key-hint {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 2px;
     }
 
     .btn-generate {
@@ -225,10 +249,7 @@
       header, .panel-left, .panel-right-header { display: none !important; }
       .layout { height: auto; }
       .panel-right { padding: 0; background: white; }
-      .letter-wrapper {
-        border: none; border-radius: 0;
-        padding: 20mm; max-width: 100%;
-      }
+      .letter-wrapper { border: none; border-radius: 0; padding: 20mm; max-width: 100%; }
     }
 
     @page { size: A4; margin: 0; }
@@ -246,12 +267,27 @@
 
   <div class="panel-left">
 
+    <!-- Clé API avec sauvegarde -->
     <div class="field-group">
-      <label class="field-label">Clé API Groq</label>
-      <div class="api-key-row">
-        <input type="password" id="apiKey" placeholder="gsk_..." />
-        <button class="btn-toggle-key" onclick="toggleKey()">👁</button>
+      <label class="field-label">
+        Clé API Groq
+        <span class="key-saved-badge" id="keySavedBadge">🔒 Enregistrée</span>
+      </label>
+
+      <!-- Vue "clé enregistrée" -->
+      <div id="keySavedView" style="display:none; gap:6px; align-items:center;">
+        <input type="password" value="••••••••••••••••••••••••" readonly
+               style="flex:1; color:#aaa; background:#f5f5f3; cursor:default;" />
+        <button class="btn-key-action" onclick="resetKey()">Changer</button>
       </div>
+
+      <!-- Vue "saisie de clé" -->
+      <div id="keyInputView" class="api-key-row">
+        <input type="password" id="apiKey" placeholder="gsk_..." />
+        <button class="btn-key-action" onclick="saveKey()">💾 Sauver</button>
+      </div>
+
+      <span class="key-hint" id="keyHint">Saisie ta clé puis clique "Sauver"</span>
     </div>
 
     <hr class="section-sep">
@@ -321,10 +357,43 @@
     email:   "dekpeakouapeuludivin@gmail.com"
   };
 
-  function toggleKey() {
-    const i = document.getElementById("apiKey");
-    i.type = i.type === "password" ? "text" : "password";
+  // ── Gestion clé API ──────────────────────────────
+
+  function loadKey() {
+    const saved = localStorage.getItem("groq_api_key");
+    if (saved) {
+      document.getElementById("keyInputView").style.display = "none";
+      document.getElementById("keySavedView").style.display = "flex";
+      document.getElementById("keySavedBadge").style.display = "inline";
+      document.getElementById("keyHint").textContent = "Clé chargée automatiquement 🔒";
+    }
   }
+
+  function saveKey() {
+    const key = document.getElementById("apiKey").value.trim();
+    if (!key.startsWith("gsk_")) return alert("Clé invalide. Elle doit commencer par gsk_");
+    localStorage.setItem("groq_api_key", key);
+    document.getElementById("apiKey").value = "";
+    document.getElementById("keyInputView").style.display = "none";
+    document.getElementById("keySavedView").style.display = "flex";
+    document.getElementById("keySavedBadge").style.display = "inline";
+    document.getElementById("keyHint").textContent = "Clé enregistrée 🔒";
+  }
+
+  function resetKey() {
+    if (!confirm("Supprimer la clé enregistrée ?")) return;
+    localStorage.removeItem("groq_api_key");
+    document.getElementById("keySavedView").style.display = "none";
+    document.getElementById("keyInputView").style.display = "flex";
+    document.getElementById("keySavedBadge").style.display = "none";
+    document.getElementById("keyHint").textContent = "Saisis ta clé puis clique \"Sauver\"";
+  }
+
+  function getKey() {
+    return localStorage.getItem("groq_api_key") || document.getElementById("apiKey").value.trim();
+  }
+
+  // ── Utilitaires ──────────────────────────────────
 
   function getToday() {
     return new Date().toLocaleDateString("fr-FR", {
@@ -332,15 +401,17 @@
     });
   }
 
+  // ── Génération ───────────────────────────────────
+
   async function generate() {
-    const apiKey       = document.getElementById("apiKey").value.trim();
+    const apiKey       = getKey();
     const employer     = document.getElementById("employer").value.trim();
     const recipient    = document.getElementById("recipient").value.trim();
     const employerCity = document.getElementById("employerCity").value.trim();
     const jobTitle     = document.getElementById("jobTitle").value.trim();
     const jobDesc      = document.getElementById("jobDesc").value.trim();
 
-    if (!apiKey)   return alert("Entre ta clé API Groq (gsk_...).");
+    if (!apiKey)   return alert("Aucune clé API enregistrée. Saisis ta clé Groq.");
     if (!jobTitle) return alert("Renseigne le titre du poste.");
     if (!jobDesc)  return alert("Renseigne la description du poste.");
 
@@ -379,11 +450,11 @@ Rédige une lettre de motivation professionnelle en français, structurée en 4 
 Contraintes :
 - Ton professionnel mais direct, sans tournures creuses
 - Chaque paragraphe cite des éléments concrets du profil ET de l'offre
-- Pas de formule générique ("passionné par l'informatique depuis tout petit")
+- Pas de formule générique
 - 4 paragraphes substantiels, pas plus
-- Ne pas inclure la date, l'objet, ni les coordonnées (gérés séparément)
+- Ne pas inclure la date, l'objet, ni les coordonnées
 - Terminer uniquement par la formule de politesse finale
-- Retourner UNIQUEMENT le corps de la lettre (4 paragraphes + formule), sans titre ni objet.`;
+- Retourner UNIQUEMENT le corps de la lettre, sans titre ni objet.`;
 
     try {
       const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -419,6 +490,8 @@ Contraintes :
     document.getElementById("genBtn").disabled = false;
     document.getElementById("statusBar").style.display = "none";
   }
+
+  // ── Rendu lettre ─────────────────────────────────
 
   function renderLetter({ employer, recipient, employerCity, jobTitle, body }) {
     const paras = body.split("\n").filter(p => p.trim().length > 0);
@@ -460,6 +533,9 @@ Contraintes :
       setTimeout(() => btn.textContent = "Copier", 2000);
     });
   }
+
+  // ── Init ─────────────────────────────────────────
+  loadKey();
 </script>
 
 </body>
